@@ -1,0 +1,15 @@
+# API Directory Configuration
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE, PUT"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>
+
+# Enable PHP
+AddHandler application/x-httpd-php .php
+
+# Prevent direct access to sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

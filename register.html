@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCSA Campus Connect - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="login-body">
+    <div class="login-wrapper">
+        <!-- Left Side - Dark Blue -->
+        <div class="login-left">
+            <div class="login-left-content">
+                <div class="logo-section-left">
+                    <img src="imagesrc/logo.png" alt="DCSA Logo" class="school-logo-left" onerror="this.style.display='none';">
+                    <div class="logo-text">
+                        <h1 class="dcsa-title">DCSA</h1>
+                        <h2 class="campus-connect">Campus Connect</h2>
+                    </div>
+                </div>
+                <div class="promo-text">
+                    <p class="promo-main">Join the exclusive social network for students and faculty,</p>
+                    <p class="promo-sub">Connect, collaborate, and stay updated.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - White -->
+        <div class="login-right">
+            <div class="login-form-container">
+                <h2 class="welcome-title">Create Account</h2>
+                <p class="welcome-subtitle">please enter your details to register</p>
+                
+                <form id="registerForm" class="login-form">
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">full name</label>
+                        <input type="text" id="fullName" class="form-control-custom" placeholder="e.g Juan Dela Cruz" required>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">student/faculty ID</label>
+                        <input type="text" id="studentId" class="form-control-custom" placeholder="e.g 2023-12345" required>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">email address</label>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <input type="email" id="email" class="form-control-custom" placeholder="e.g juan@dcsa.edu" required style="flex:1;min-width:180px;">
+                            <button type="button" id="sendCodeBtn" class="btn btn-outline-dark btn-sm">Send code</button>
+                        </div>
+                        <small class="text-muted">Get a 6-digit code via email. We won't send if this email is already used.</small>
+                    </div>
+                    <div class="form-group-custom" id="verifyCodeRow" style="display:none;">
+                        <label class="form-label-custom">verification code</label>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <input type="text" id="verificationCode" class="form-control-custom" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" style="max-width:140px;">
+                            <button type="button" id="verifyCodeBtn" class="btn btn-outline-dark btn-sm">Verify</button>
+                            <span id="verifyStatus" class="text-success" style="display:none;"><i class="fas fa-check-circle"></i> Verified</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="regPassword" class="form-control-custom" placeholder="Enter your password" required>
+                            <i class="fas fa-eye toggle-password" id="toggleRegPassword"></i>
+                        </div>
+                        <small class="text-muted d-block mt-1">At least 10 characters, uppercase, lowercase, numbers only (no special characters)</small>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">confirm password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmPassword" class="form-control-custom" placeholder="Confirm your password" required>
+                            <i class="fas fa-eye toggle-password" id="toggleConfirmPassword"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-custom">
+                        <label class="form-label-custom">account type</label>
+                        <select id="accountType" class="form-control-custom" required>
+                            <option value="">Select account type</option>
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn-login-custom">
+                        Register
+                    </button>
+                </form>
+                
+                <div class="register-link">
+                    <p>already have an account? <a href="index.html">sign in</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/email.js"></script>
+    <script src="assets/js/register.js"></script>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Clone - Home Feed</title>
+    <script>
+        // Prevent "blink" by redirecting before the page paints (auth guard).
+        (function () {
+            try {
+                if (!localStorage.getItem('user')) {
+                    window.location.replace('index.html');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="home-body app-hidden">
+    <!-- Navigation Bar -->
+    <nav class="navbar-custom">
+        <div class="container-fluid d-flex align-items-center">
+            <a class="navbar-brand" href="#" id="navBrand">
+                <img src="imagesrc/logo.jpg" alt="Logo" class="nav-logo" onerror="this.style.display='none';">
+                <span>Social Media</span>
+            </a>
+            
+                    <div class="nav-search flex-grow-1 mx-2 d-none d-lg-flex" id="navSearchWrap">
+                        <i class="fas fa-search nav-search-icon"></i>
+                        <input type="text" id="userSearchInput" class="nav-search-input flex-grow-1" placeholder="Search users...">
+                        <button type="button" class="btn btn-sm btn-link text-secondary d-lg-none p-0 ms-2" id="navSearchClose" aria-label="Close search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <div class="nav-search-results" id="userSearchResults"></div>
+                    </div>
+          
+
+            <div class="navbar-nav-custom" id="navLinks">
+                <a href="#" class="nav-link active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="nav-link" data-page="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="#" class="nav-link" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                    <span class="badge-notification" id="notificationBadge">0</span>
+                </a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                        <img src="assets/images/default-avatar.png" alt="User" class="user-avatar-nav avatar-zoom" onclick="openMediaViewer(this.src)" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-page="profile"><i class="fas fa-user"></i> My Profile</a></li>
+                        <li id="adminMenuItem" style="display:none;"><a class="dropdown-item" href="#" id="adminPanelBtn"><i class="fas fa-shield-alt"></i> Admin Panel</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm ms-2 d-inline-flex d-lg-none" id="navSearchToggle" aria-label="Open search">
+                <i class="fas fa-search"></i>
+            </button>
+            <button type="button" class="nav-burger btn ms-2" id="navBurger" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Burger menu drawer -->
+    <div class="burger-overlay" id="burgerOverlay"></div>
+    <div class="burger-drawer" id="burgerDrawer">
+        <div class="burger-drawer-header">
+            <h5 class="burger-drawer-title">Menu</h5>
+            <button type="button" class="burger-close btn" id="burgerClose" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <ul class="burger-menu-list">
+            <li><a href="#" class="burger-menu-item" data-page="profile"><i class="fas fa-user"></i> My Profile</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerEditProfile"><i class="fas fa-pen"></i> Edit Profile</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerChangePassword"><i class="fas fa-key"></i> Change Password</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerChangeUsername"><i class="fas fa-at"></i> Change Username</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerPrivacySettings"><i class="fas fa-lock"></i> Privacy Settings</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerBlockedUsers"><i class="fas fa-user-slash"></i> Blocked Users</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerReport"><i class="fas fa-flag"></i> Report User/Post</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerGuidelines"><i class="fas fa-book"></i> Community Guidelines</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerNotes"><i class="fas fa-sticky-note"></i> Notes</a></li>
+            <li><a href="#" class="burger-menu-item" id="burgerArchiveStories"><i class="fas fa-archive"></i> Archive Story</a></li>
+            <li class="burger-menu-divider"></li>
+            <li><a href="#" class="burger-menu-item" id="burgerExit"><i class="fas fa-door-open"></i> Exit</a></li>
+            <li><a href="#" class="burger-menu-item text-danger" id="burgerLogout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="container-fluid main-container">
+        <div class="row">
+            <!-- Left Sidebar - Profile Section -->
+            <aside class="col-lg-3 sidebar-left">
+                <div class="profile-card">
+                    <div class="profile-cover" id="profileCover" onclick="openCoverViewer()"></div>
+                    <div class="profile-info">
+                        <div class="profile-avatar-wrap">
+                            <img src="assets/images/default-avatar.png" alt="Profile" class="profile-avatar avatar-zoom" id="sidebarProfileAvatar" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
+                            <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/jpg" style="display:none;">
+                            <div class="profile-note-badge" id="profileNoteBadge" title="Note">
+                                <div class="profile-note-text" id="profileNoteText"></div>
+                                <button type="button" class="btn-note-edit" id="profileNoteEditBtn" title="Edit note"><i class="fas fa-pen"></i></button>
+                                <button type="button" class="btn-note-delete" id="profileNoteDeleteBtn" title="Delete note" style="display:none;"><i class="fas fa-trash"></i></button>
+                                <span class="btn-note-like" id="profileNoteLikeBtn" style="display:none;" title="Like"><i class="far fa-heart"></i> <span id="profileNoteLikeCount">0</span></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-profile-action mt-2" id="changeAvatarBtn">
+                            <i class="fas fa-camera"></i> Change Photo
+                        </button>
+                        <button type="button" class="btn btn-sm btn-profile-action mt-2" id="editProfileBtn">
+                            <i class="fas fa-pen"></i> Edit Profile
+                        </button>
+                        <h4 class="profile-name clickable-profile" id="profileName" title="View Story or Profile">John Doe</h4>
+                        <p class="profile-username" id="profileUsername">@johndoe</p>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="postCount">0</span>
+                                <span class="stat-label">Posts</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="followerCount">0</span>
+                                <span class="stat-label">Followers</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="followingCount">0</span>
+                                <span class="stat-label">Following</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content - Timeline -->
+            <main class="col-lg-6 main-content">
+                <div id="viewHeader" class="view-header"></div>
+                <!-- MyDay / Stories (24h) -->
+                <div class="stories-row" id="storiesRow">
+                    <div class="stories-inner">
+                        <div class="story-add-circle" id="addStoryBtn" title="Add to My Day">
+                            <i class="fas fa-plus"></i>
+                            <input type="file" id="storyMediaInput" accept="image/png,image/jpeg,image/jpg,video/mp4" style="display:none;">
+                        </div>
+                        <div class="stories-list" id="storiesList"></div>
+                    </div>
+                </div>
+
+                
+                
+                <!-- Create Post Section -->
+                <div class="create-post-card">
+                    <div class="create-post-header">
+                        <img src="assets/images/default-avatar.png" alt="User" class="create-post-avatar avatar-zoom" onclick="openMediaViewer(this.src)" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
+                        <input type="text" id="postContent" class="create-post-input" placeholder="What's on your mind?">
+                    </div>
+                    <div id="privacyRow" class="create-post-privacy mt-2" style="display:none;">
+                        <label class="form-label-custom me-2" style="margin-bottom:0;font-size:13px;">Privacy:</label>
+                        <select id="postPrivacy" class="action-select">
+                            <option value="only_me">Only me</option>
+                            <option value="followers">Friends (followers)</option>
+                            <option value="friends_of_friends">Friends of friends</option>
+                            <option value="public" selected>Public</option>
+                        </select>
+                    </div>
+                    <div class="create-post-actions">
+                        <label for="postMedia" class="action-btn">
+                            <i class="fas fa-image"></i>
+                            <span>Photo</span>
+                            <input type="file" id="postMedia" accept="image/png,image/jpeg,image/jpg" multiple style="display:none;">
+                        </label>
+                        <div id="announcementToggle" style="display:none;">
+                            <label class="action-btn" style="cursor:pointer;">
+                                <input type="checkbox" id="isAnnouncement" style="display:none;">
+                                <i class="fas fa-bullhorn"></i>
+                                <span>Announcement</span>
+                            </label>
+                        </div>
+                        <button class="action-btn" id="viewAnnouncementsBtn" title="View posted announcements">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </button>
+                        <button class="action-btn" id="createPostBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Post</span>
+                        </button>
+                    </div>
+                    <div class="media-preview" id="mediaPreview"></div>
+                </div>
+
+                <!-- Timeline Posts -->
+                <div id="timelinePosts" class="timeline-posts">
+                    <!-- Posts will be loaded here via AJAX -->
+                </div>
+            </main>
+
+            <!-- Right Sidebar -->
+            <aside class="col-lg-3 sidebar-right">
+                <div class="widget-card">
+                    <h5 class="widget-title">Trending</h5>
+                    <ul class="trending-list" id="trendingList">
+                        <li>#Technology</li>
+                        <li>#SocialMedia</li>
+                        <li>#Community</li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h5>Notifications</h5>
+            <div class="notification-header-actions">
+                <button class="btn-notification-action" id="markAllReadBtn" title="Mark all as read">
+                    <i class="fas fa-check-double"></i>
+                </button>
+                <button class="btn-notification-action" id="markAllUnreadBtn" title="Mark all as unread">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="close-notifications" id="closeNotifications">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="notification-content" id="notificationContent">
+            <!-- Notifications will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div class="modal fade" id="notesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-sticky-note"></i> Notes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <button type="button" class="btn btn-primary btn-sm mb-3" id="createNoteBtn"><i class="fas fa-plus"></i> New Note</button>
+                    <div id="notesListContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Form Modal (Create/Edit - normal inputs so you can type) -->
+    <div class="modal fade" id="noteFormModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteFormModalTitle"><i class="fas fa-sticky-note"></i> New Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="noteFormContent" maxlength="60" placeholder="Type your note here" autocomplete="off">
+                        <small class="text-muted"><span id="noteCharCount">0</span>/60</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="noteFormSaveBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Story viewer modal -->
+    <div class="modal fade" id="storyViewerModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0 text-white py-2 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span id="storyViewerName"></span>
+                        <span id="storyViewerTime" class="small text-white-50 ms-2"></span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-light" id="storyLikeBtn" title="Like">
+                            <i class="far fa-heart" id="storyLikeIcon"></i> <span id="storyLikeCount">0</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="storyViewersBtn" title="Viewers" style="display:none;">
+                            <i class="fas fa-eye"></i> <span id="storyViewerCount">0</span>
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body p-0 text-center position-relative">
+                    <div class="story-progress-bars" id="storyProgressBars"></div>
+                    <button type="button" class="btn-story-nav btn-story-prev" id="storyPrevBtn" title="Previous"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" class="btn-story-nav btn-story-next" id="storyNextBtn" title="Next"><i class="fas fa-chevron-right"></i></button>
+                    <img id="storyViewerImage" src="" alt="Story" class="img-fluid d-none" style="max-height:70vh;object-fit:contain;">
+                    <video id="storyViewerVideo" class="d-none" controls style="max-height:70vh;width:100%;" playsinline></video>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Story viewers list modal -->
+    <div class="modal fade" id="storyViewersModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h6 class="modal-title"><i class="fas fa-eye"></i> Viewers</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" id="storyViewersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Archive Stories modal -->
+    <div class="modal fade" id="archiveStoriesModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0 text-white py-2">
+                    <h6 class="modal-title"><i class="fas fa-archive"></i> Archive Story</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0 text-center position-relative">
+                    <div class="story-progress-bars" id="archiveProgressBars"></div>
+                    <button type="button" class="btn-story-nav btn-story-prev" id="archivePrevBtn" title="Previous"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" class="btn-story-nav btn-story-next" id="archiveNextBtn" title="Next"><i class="fas fa-chevron-right"></i></button>
+                    <img id="archiveViewerImage" src="" alt="Story" class="img-fluid d-none" style="max-height:70vh;object-fit:contain;">
+                    <video id="archiveViewerVideo" class="d-none" controls style="max-height:70vh;width:100%;" playsinline></video>
+                    <div id="archiveEmptyState" class="p-5 text-white-50" style="display:none;">
+                        <i class="fas fa-archive fa-3x mb-3"></i>
+                        <p class="mb-0">No archived stories yet.</p>
+                        <small>Stories expire after 24 hours and appear here.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Story or View Profile choice modal -->
+    <div class="modal fade" id="profileChoiceModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title">View</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3 d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-outline-primary" id="profileChoiceViewStory">
+                        <i class="fas fa-circle"></i> View Story
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="profileChoiceViewProfile">
+                        <i class="fas fa-user"></i> View Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div class="modal fade" id="adminPanelModal" tabindex="-1" aria-labelledby="adminPanelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content admin-modal-content">
+                <div class="modal-header admin-modal-header">
+                    <h5 class="modal-title" id="adminPanelModalLabel">
+                        <i class="fas fa-shield-alt"></i> Admin Panel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body admin-modal-body">
+                    <ul class="nav nav-tabs admin-tabs" id="adminTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab">
+                                <i class="fas fa-list"></i> Student Activities
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts" type="button" role="tab">
+                                <i class="fas fa-users"></i> Accounts
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab">
+                                <i class="fas fa-bullhorn"></i> Announcements
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">
+                                <i class="fas fa-flag"></i> Reports
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
+                                <i class="fas fa-history"></i> Action Logs
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content admin-tab-content" id="adminTabContent">
+                        <div class="tab-pane fade show active" id="activities" role="tabpanel">
+                            <div class="admin-section-header">
+                                <h6>Recent Student Activities</h6>
+                                <button class="btn btn-sm btn-primary" onclick="loadAdminData()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="studentActivitiesList" class="admin-activities-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="accounts" role="tabpanel">
+                            <div class="admin-section-header">
+                                <h6>Students & Faculty Accounts</h6>
+                                <button class="btn btn-sm btn-primary" onclick="renderAccounts()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="accountsList" class="admin-activities-list">
+                                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="announcements" role="tabpanel">
+                            <div class="admin-section-header">
+                                <h6>Pending & Posted Announcements</h6>
+                                <button class="btn btn-sm btn-primary" onclick="renderAnnouncements()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="announcementsList" class="admin-activities-list">
+                                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="reports" role="tabpanel">
+                            <div class="admin-section-header">
+                                <h6>Reported Posts</h6>
+                                <button class="btn btn-sm btn-primary" onclick="renderReports()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="reportsList" class="admin-reports-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="logs" role="tabpanel">
+                            <div class="admin-section-header">
+                                <h6>Admin Action Logs</h6>
+                                <button class="btn btn-sm btn-primary" onclick="renderLogs()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="logsList" class="admin-logs-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/home.js"></script>
+</body>
+</html>
