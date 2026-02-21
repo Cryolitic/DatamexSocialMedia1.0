@@ -1,5 +1,5 @@
 # Social Media Posting Clone System
-
+*This is Outdated*
 A professional social media platform clone built with HTML, CSS, JavaScript, PHP, and AJAX. Features beautiful 3D CSS effects, Bootstrap integration, and backend-ready PHP files for database integration.
 
 ## Features
