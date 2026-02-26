@@ -9,7 +9,7 @@
  */
 
 const API = 'api';
-
+ 
 async function checkEmailExists(email) {
     try {
         const res = await fetch(`${API}/check_email.php?email=${encodeURIComponent(email)}`);
