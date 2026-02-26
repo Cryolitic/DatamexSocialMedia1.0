@@ -85,8 +85,13 @@ try {
             }
         }
         $responsePosts = array_map(function ($p) use ($commentsByPost, $safeAvatar) {
-            $media = $p['media_url'];
-            if (!empty($p['media_urls'])) { $decoded = json_decode($p['media_urls'], true); if (is_array($decoded)) $media = $decoded; }
+            $media = null;
+            if (!empty($p['media_urls'])) {
+                $decoded = json_decode($p['media_urls'], true);
+                if (is_array($decoded)) {
+                    $media = $decoded;
+                }
+            }
             return ['id'=>(int)$p['id'],'user_id'=>(int)$p['user_id'],'username'=>$p['username']?:$p['user_id'],'name'=>$p['name']?:$p['username'],'avatar'=>$safeAvatar($p['avatar']),'content'=>$p['content'],'media'=>$media,'media_type'=>$p['media_type'],'likes'=>(int)$p['likes'],'comments'=>$commentsByPost[$p['id']]??[],'shares'=>(int)$p['share_count'],'timestamp'=>$p['created_at'],'isLiked'=>(bool)$p['is_liked'],'reference_post'=>$p['reference_post'],'privacy'=>$p['privacy'],'post_type'=>$p['post_type']??'post','account_type'=>$p['account_type']??'student'];
         }, $announcements);
         json_response(['success' => true, 'posts' => $responsePosts]);
@@ -175,11 +180,17 @@ try {
                         AND p.user_id = :profile_uid
                         AND u.status != 'banned'
                         AND (u.banned_until IS NULL OR u.banned_until < NOW())
+                        AND (
+                        (p.user_id = :uid3)
+                        OR (p.privacy = 'public')
+                        OR (p.privacy = 'followers' AND f.follower_id IS NOT NULL)
+                        )
                     ORDER BY p.created_at DESC
                     LIMIT :limit OFFSET :offset
                 ");
                 $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
                 $stmt->bindValue(':uid2', $user_id, PDO::PARAM_INT);
+                $stmt->bindValue(':uid3', $user_id, PDO::PARAM_INT);
                 $stmt->bindValue(':profile_uid', $profile_user_id, PDO::PARAM_INT);
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -315,7 +326,7 @@ try {
 
     // Map response
     $responsePosts = array_map(function ($p) use ($commentsByPost, $safeAvatar) {
-        $media = $p['media_url'];
+        $media = null;
         if (!empty($p['media_urls'])) {
             $decoded = json_decode($p['media_urls'], true);
             if (is_array($decoded)) {

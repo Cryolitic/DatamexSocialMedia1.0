@@ -22,7 +22,6 @@ $privacy = isset($_POST['privacy']) ? $_POST['privacy'] : 'public';
 if ($privacy === 'private') $privacy = 'only_me';
 $post_type = isset($_POST['post_type']) ? $_POST['post_type'] : 'post';
 $reference_post = isset($_POST['reference_post']) ? intval($_POST['reference_post']) : null;
-$media_file = null;
 $media_files = [];
 
 if (!$user_id) {
@@ -75,14 +74,9 @@ if (isset($_FILES['media'])) {
         }
         $media_files[] = 'uploads/posts/' . $filename;
     }
-
-    // Backwards compat: keep media_url for single-media posts
-    if (count($media_files) === 1) {
-        $media_file = $media_files[0];
-    }
 }
 
-if (empty($content) && empty($media_file) && empty($media_files)) {
+if (empty($content) && empty($media_files)) {
     json_response(['success' => false, 'message' => 'Post content or media is required'], 400);
 }
 
@@ -118,8 +112,8 @@ try {
     if (!in_array($privacy, $allowed_privacy)) $privacy = 'public';
     
     $stmt = $pdo->prepare("
-        INSERT INTO posts (user_id, content, media_type, media_url, media_urls, privacy, post_type, announcement_status, reference_post)
-        VALUES (:user_id, :content, :media_type, :media_url, :media_urls, :privacy, :post_type, :announcement_status, :reference_post)
+        INSERT INTO posts (user_id, content, media_type, media_urls, privacy, post_type, announcement_status, reference_post)
+        VALUES (:user_id, :content, :media_type, :media_urls, :privacy, :post_type, :announcement_status, :reference_post)
     ");
     $media_type = 'text';
     if (!empty($media_files)) {
@@ -129,15 +123,12 @@ try {
             if (str_contains($m, '.mp4')) { $hasVideo = true; break; }
         }
         $media_type = $hasVideo ? 'video' : 'image';
-    } elseif ($media_file) {
-        $media_type = str_contains($media_file, '.mp4') ? 'video' : 'image';
     }
     $media_urls_json = !empty($media_files) ? json_encode($media_files) : null;
     $stmt->execute([
         'user_id' => $user_id,
         'content' => $content,
         'media_type' => $media_type,
-        'media_url' => $media_file,
         'media_urls' => $media_urls_json,
         'privacy' => $privacy,
         'post_type' => $post_type,
@@ -178,7 +169,7 @@ try {
             'name' => $user['name'] ?: $user['username'],
             'avatar' => $user['avatar'] ?: 'assets/images/default-avatar.png',
             'content' => $content,
-            'media' => !empty($media_files) ? $media_files : $media_file,
+            'media' => !empty($media_files) ? $media_files : null,
             'likes' => 0,
             'comments' => [],
             'shares' => 0,

@@ -35,8 +35,8 @@ try {
 
     // Create a new post as a share with reference_post
     $stmt = $pdo->prepare("
-        INSERT INTO posts (user_id, content, media_type, media_url, privacy, reference_post)
-        SELECT :uid, content, media_type, media_url, 'public', id
+        INSERT INTO posts (user_id, content, media_type, media_urls, privacy, reference_post)
+        SELECT :uid, content, media_type, media_urls, 'public', id
         FROM posts WHERE id = :pid
     ");
     $stmt->execute(['uid' => $user_id, 'pid' => $post_id]);

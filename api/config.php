@@ -123,7 +123,6 @@ function migrate(PDO $pdo): void {
             user_id INT NOT NULL,
             content TEXT,
             media_type VARCHAR(20),
-            media_url VARCHAR(255),
             media_urls TEXT NULL,
             privacy ENUM('only_me','followers','friends_of_friends','public','private') DEFAULT 'public',
             post_type ENUM('post','announcement') DEFAULT 'post',
@@ -144,6 +143,9 @@ function migrate(PDO $pdo): void {
     } catch (PDOException $e) {}
     try {
         $pdo->exec("ALTER TABLE posts ADD COLUMN media_urls TEXT NULL");
+    } catch (PDOException $e) {}
+    try {
+        $pdo->exec("ALTER TABLE posts DROP COLUMN media_url");
     } catch (PDOException $e) {}
     try {
         $pdo->exec("ALTER TABLE posts ADD COLUMN post_type ENUM('post','announcement') DEFAULT 'post'");

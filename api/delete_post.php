@@ -25,7 +25,7 @@ $user_id = intval($input['user_id']);
 
 try {
     $pdo = db();
-    $stmt = $pdo->prepare('SELECT media_url, user_id FROM posts WHERE id = :id');
+    $stmt = $pdo->prepare('SELECT media_urls, user_id FROM posts WHERE id = :id');
     $stmt->execute(['id' => $post_id]);
     $post = $stmt->fetch();
 
@@ -45,10 +45,20 @@ try {
     $del = $pdo->prepare('DELETE FROM posts WHERE id = :id');
     $del->execute(['id' => $post_id]);
 
-    if (!empty($post['media_url'])) {
-        $path = __DIR__ . '/../' . $post['media_url'];
-        if (file_exists($path)) {
-            @unlink($path);
+    if (!empty($post['media_urls'])) {
+        $decoded = json_decode($post['media_urls'], true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $mediaPath) {
+                if (!is_string($mediaPath) || $mediaPath === '') {
+                    continue;
+                }
+                if (str_starts_with($mediaPath, 'uploads/posts/')) {
+                    $path = __DIR__ . '/../' . $mediaPath;
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                }
+            }
         }
     }
 

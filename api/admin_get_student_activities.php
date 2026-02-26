@@ -52,7 +52,7 @@ try {
     
     // Format posts
     $formattedPosts = array_map(function($p) {
-        $media = $p['media_url'];
+        $media = null;
         if (!empty($p['media_urls'])) {
             $decoded = json_decode($p['media_urls'], true);
             if (is_array($decoded)) {
