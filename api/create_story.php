@@ -1,5 +1,9 @@
 <?php
+
+
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -30,23 +34,31 @@ $allowed_video = ['video/mp4'];
 $type = $file['type'];
 $is_video = in_array($type, $allowed_video);
 $is_image = in_array($type, $allowed_image);
+$uploadApi = cloudinary_upload_api();
 if (!$is_image && !$is_video) {
     json_response(['success' => false, 'message' => 'Only PNG, JPG or MP4 allowed'], 400);
 }
 
+try{
+    $uploadResult = $uploadApi->upload($file['tmp_name'],[
+        'folder' => 'uploads/stories',
+        'resource_type' => 'auto'
+    ]);
+    $media_url = json_encode([
+        'url' => $uploadResult['secure_url'],
+        'public_id' => $uploadResult['public_id'],
+        'resource_type' => $uploadResult['resource_type']
+    ]);
+} catch (Exception $e){
+    json_response([
+        'success' => false,
+        'message' => 'Cloud Upload failed: '. $e->getMessage()
+    ]);
+}
+
 try {
     $pdo = db();
-    $upload_dir = dirname(__DIR__) . '/uploads/stories/';
-    if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0755, true);
-    }
     $ext = $is_video ? 'mp4' : (pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'jpg');
-    $filename = 'story_' . uniqid() . '.' . $ext;
-    $path = $upload_dir . $filename;
-    if (!move_uploaded_file($file['tmp_name'], $path)) {
-        json_response(['success' => false, 'message' => 'Upload failed'], 500);
-    }
-    $media_url = 'uploads/stories/' . $filename;
     $media_type = $is_video ? 'video' : 'image';
     $stmt = $pdo->prepare('INSERT INTO stories (user_id, media_type, media_url) VALUES (:uid, :type, :url)');
     $stmt->execute(['uid' => $user_id, 'type' => $media_type, 'url' => $media_url]);

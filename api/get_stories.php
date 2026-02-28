@@ -27,6 +27,9 @@ try {
         $uid = (int)$r['user_id'];
         $sid = (int)$r['id'];
         $liked = false;
+        $raw = $r['media_url'];
+        $decoded = json_decode($raw, true);
+        $storyMediaUrl = is_array($decoded) && !empty($decoded['url']) ? $decoded['url'] : $raw;
         if ($viewer_id) {
             $lk = $pdo->prepare('SELECT 1 FROM story_likes WHERE story_id = :sid AND user_id = :vid LIMIT 1');
             $lk->execute(['sid' => $sid, 'vid' => $viewer_id]);
@@ -44,7 +47,7 @@ try {
         $by_user[$uid]['stories'][] = [
             'id' => $sid,
             'media_type' => $r['media_type'],
-            'media_url' => $r['media_url'],
+            'media_url' => $storyMediaUrl,
             'created_at' => $r['created_at'],
             'view_count' => (int)$r['view_count'],
             'like_count' => (int)$r['like_count'],

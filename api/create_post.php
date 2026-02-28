@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
+
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -23,10 +26,13 @@ if ($privacy === 'private') $privacy = 'only_me';
 $post_type = isset($_POST['post_type']) ? $_POST['post_type'] : 'post';
 $reference_post = isset($_POST['reference_post']) ? intval($_POST['reference_post']) : null;
 $media_files = [];
+$uploadApi = cloudinary_upload_api();
 
 if (!$user_id) {
     json_response(['success' => false, 'message' => 'User is required'], 400);
 }
+
+
 
 // Handle file upload (single: media, multiple: media[])
 if (isset($_FILES['media'])) {
@@ -50,10 +56,8 @@ if (isset($_FILES['media'])) {
 
     $max_size = 5 * 1024 * 1024;
     $allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'video/mp4'];
-    $upload_dir = __DIR__ . '/../uploads/posts/';
-    if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0777, true);
-    }
+    
+    
 
     foreach ($files as $file) {
         if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
@@ -66,13 +70,23 @@ if (isset($_FILES['media'])) {
         if (!in_array($file_type, $allowed_types)) {
             json_response(['success' => false, 'message' => 'Only PNG, JPG, and MP4 are allowed'], 400);
         }
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = uniqid('post_') . '.' . $extension;
-        $media_path = $upload_dir . $filename;
-        if (!move_uploaded_file($file['tmp_name'], $media_path)) {
-            json_response(['success' => false, 'message' => 'Failed to upload file'], 500);
+        try {
+            $uploadResult = $uploadApi->upload($file['tmp_name'],[
+                'folder' => 'uploads/posts',
+                'resource_type' => 'auto'
+            ]);
+            $media_files[] = [
+                'url' => $uploadResult['secure_url'],
+                'public_id' => $uploadResult['public_id'],
+                'resource_type' => $uploadResult['resource_type'] ?? 'image'
+            ];
+        } catch (Exception $e) {
+            json_response([
+                'success' => false,
+                'message' => 'Cloud upload failed: ' . $e->getMessage()
+            ], 500);
         }
-        $media_files[] = 'uploads/posts/' . $filename;
+        
     }
 }
 
@@ -120,7 +134,7 @@ try {
         // If any file is mp4 => video, else image(s)
         $hasVideo = false;
         foreach ($media_files as $m) {
-            if (str_contains($m, '.mp4')) { $hasVideo = true; break; }
+            if (($m['resource_type'] ?? '') === 'video') { $hasVideo = true; break; }
         }
         $media_type = $hasVideo ? 'video' : 'image';
     }
@@ -167,7 +181,7 @@ try {
             'user_id' => $user_id,
             'username' => $user['username'] ?: $user['id'],
             'name' => $user['name'] ?: $user['username'],
-            'avatar' => $user['avatar'] ?: 'assets/images/default-avatar.png',
+            'avatar' => $user['avatar'] ?: 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772225107/default-avatar_ylfaff.png',
             'content' => $content,
             'media' => !empty($media_files) ? $media_files : null,
             'likes' => 0,
