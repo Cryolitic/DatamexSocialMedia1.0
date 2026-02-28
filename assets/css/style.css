@@ -104,18 +104,19 @@ body {
 .login-body {
     margin: 0;
     padding: 0;
-    min-height: 100vh;
-    overflow: hidden;
+    min-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
     background: #f0f2f5; /* Light gray background like Facebook */
 }
 
 .login-wrapper {
     display: flex;
-    min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
     padding: 40px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Left Side - Very Dark Blue */
@@ -129,8 +130,8 @@ body {
     position: relative;
     border-radius: 16px 0 0 16px;
     margin-right: 0;
-    overflow-y: auto;
-    max-height: 100vh;
+    overflow: visible;
+    max-height: none;
 }
 
 .login-left-content {
@@ -199,15 +200,15 @@ body {
     justify-content: center;
     padding: 60px;
     border-radius: 0 16px 16px 0;
-    overflow-y: auto;
-    max-height: 100vh;
+    overflow: visible;
+    max-height: none;
 }
 
 .login-form-container {
     width: 100%;
     max-width: 450px;
-    max-height: 85vh;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
     background: #ffffff;
     padding: 40px;
     border-radius: 16px; /* More rounded border radius */
@@ -534,21 +535,27 @@ button[type="submit"].btn-login-custom:active {
     
     .login-left {
         width: 100%;
-        min-height: 40vh;
+        min-height: auto;
         padding: 40px 30px;
         border-radius: 16px 16px 0 0;
         margin-right: 0;
         margin-bottom: 0;
+        max-height: none;
+        overflow: visible;
     }
     
     .login-right {
         width: 100%;
         padding: 40px 30px;
         border-radius: 0 0 16px 16px;
+        max-height: none;
+        overflow: visible;
     }
     
     .login-form-container {
         border-radius: 16px;
+        max-height: none;
+        overflow: visible;
     }
     
     .dcsa-title {
