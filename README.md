@@ -132,7 +132,6 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     name VARCHAR(100),
     avatar VARCHAR(255),
-    is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

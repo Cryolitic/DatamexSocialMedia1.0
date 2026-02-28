@@ -68,7 +68,7 @@ try {
     
     // Notify all admins when a student shares
     if ($user && $user['account_type'] === 'student') {
-        $adminStmt = $pdo->prepare('SELECT id FROM users WHERE is_admin = 1 OR account_type = "admin"');
+        $adminStmt = $pdo->prepare('SELECT id FROM users WHERE account_type = "admin"');
         $adminStmt->execute();
         $admins = $adminStmt->fetchAll();
         

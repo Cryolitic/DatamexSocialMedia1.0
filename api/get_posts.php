@@ -27,7 +27,7 @@ try {
     // Check if user is admin
     $isAdmin = false;
     if ($user_id > 0) {
-        $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND (is_admin = 1 OR account_type = "admin")');
+        $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND account_type = "admin"');
         $adminCheck->execute(['id' => $user_id]);
         $isAdmin = (bool)$adminCheck->fetch();
     }

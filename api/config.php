@@ -55,7 +55,6 @@ function migrate(PDO $pdo): void {
             cover_photo VARCHAR(255),
             avatar VARCHAR(255),
             account_type ENUM('student','faculty','admin') DEFAULT 'student',
-            is_admin TINYINT(1) DEFAULT 0,
             status ENUM('active','suspended','banned') DEFAULT 'active',
             warnings INT DEFAULT 0,
             warning_reasons TEXT,
@@ -73,6 +72,10 @@ function migrate(PDO $pdo): void {
     } catch (PDOException $e) {
         // Column already exists, ignore
     }
+    // Legacy migration: preserve old admin flags into account_type.
+    try {
+        $pdo->exec("UPDATE users SET account_type = 'admin' WHERE is_admin = 1 AND account_type <> 'admin'");
+    } catch (PDOException $e) {}
     try {
         $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('active','suspended','banned') DEFAULT 'active'");
     } catch (PDOException $e) {}
@@ -348,8 +351,8 @@ function migrate(PDO $pdo): void {
         if (!$adminCheck) {
             $hash = password_hash('admin123', PASSWORD_BCRYPT);
             $seed = $pdo->prepare('
-                INSERT INTO users (username, email, password, name, avatar, account_type, is_admin, status)
-                VALUES (:username, :email, :password, :name, :avatar, :account_type, 1, "active")
+                INSERT INTO users (username, email, password, name, avatar, account_type, status)
+                VALUES (:username, :email, :password, :name, :avatar, :account_type, "active")
             ');
             $seed->execute([
                 'username' => 'admin',

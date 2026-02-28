@@ -15,18 +15,35 @@ if ($admin_id <= 0) {
 try {
     $pdo = db();
     
-    $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND (is_admin = 1 OR account_type = "admin")');
+    $adminCheck = $pdo->prepare('SELECT id, account_type FROM users WHERE id = :id AND account_type IN ("admin", "faculty")');
     $adminCheck->execute(['id' => $admin_id]);
-    if (!$adminCheck->fetch()) {
+    $viewer = $adminCheck->fetch();
+    if (!$viewer) {
         json_response(['success' => false, 'message' => 'Unauthorized'], 403);
     }
-    
-    $stmt = $pdo->prepare("
-        SELECT id, username, email, name, account_type, status, created_at, warnings
-        FROM users
-        WHERE account_type IN ('student', 'faculty')
-        ORDER BY account_type ASC, name ASC
-    ");
+
+    if ($viewer['account_type'] === 'admin') {
+        $stmt = $pdo->prepare("
+            SELECT id, username, email, name, account_type, status, created_at, warnings
+            FROM users
+            WHERE account_type IN ('admin', 'student', 'faculty')
+            ORDER BY
+                CASE account_type
+                    WHEN 'admin' THEN 1
+                    WHEN 'faculty' THEN 2
+                    WHEN 'student' THEN 3
+                    ELSE 4
+                END ASC,
+                name ASC
+        ");
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT id, username, email, name, account_type, status, created_at, warnings
+            FROM users
+            WHERE account_type IN ('student', 'faculty')
+            ORDER BY account_type ASC, name ASC
+        ");
+    }
     $stmt->execute();
     $rows = $stmt->fetchAll();
     
