@@ -16,8 +16,8 @@ if (!$admin_id) {
 try {
     $pdo = db();
     
-    // Verify admin
-    $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND (is_admin = 1 OR account_type = "admin")');
+// Verify moderator (admin or staff/faculty)
+$adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND account_type IN ("admin", "faculty")');
     $adminCheck->execute(['id' => $admin_id]);
     if (!$adminCheck->fetch()) {
         json_response(['success' => false, 'message' => 'Unauthorized'], 403);

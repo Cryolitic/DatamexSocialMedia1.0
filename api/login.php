@@ -131,7 +131,7 @@ try {
             'email' => $user['email'],
             'avatar' => $user['avatar'] ?: 'assets/images/default-avatar.png',
             'accountType' => $user['account_type'] ?? 'student',
-            'isAdmin' => (bool)$user['is_admin']
+            'isAdmin' => (($user['account_type'] ?? 'student') === 'admin')
         ]
     ]);
 } catch (Exception $e) {

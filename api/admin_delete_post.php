@@ -26,20 +26,36 @@ $post_id = intval($input['post_id']);
 try {
     $pdo = db();
     
-    // Verify admin
-    $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND (is_admin = 1 OR account_type = "admin")');
+    // Verify moderator (admin or staff/faculty)
+    $adminCheck = $pdo->prepare('SELECT id, account_type FROM users WHERE id = :id AND account_type IN ("admin", "faculty")');
     $adminCheck->execute(['id' => $admin_id]);
-    if (!$adminCheck->fetch()) {
+    $moderator = $adminCheck->fetch();
+    if (!$moderator) {
         json_response(['success' => false, 'message' => 'Unauthorized'], 403);
     }
     
     // Get post info
-    $postStmt = $pdo->prepare('SELECT id, user_id, content FROM posts WHERE id = :id AND deleted_at IS NULL');
+    $postStmt = $pdo->prepare('
+        SELECT p.id, p.user_id, p.post_type, p.content, u.account_type AS owner_account_type
+        FROM posts p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.id = :id AND p.deleted_at IS NULL
+    ');
     $postStmt->execute(['id' => $post_id]);
     $post = $postStmt->fetch();
     
     if (!$post) {
         json_response(['success' => false, 'message' => 'Post not found'], 404);
+    }
+
+    // Faculty cannot remove admin posts and cannot remove announcement posts.
+    if ($moderator['account_type'] === 'faculty') {
+        if ($post['owner_account_type'] === 'admin') {
+            json_response(['success' => false, 'message' => 'Faculty cannot remove admin posts'], 403);
+        }
+        if ($post['post_type'] === 'announcement') {
+            json_response(['success' => false, 'message' => 'Faculty cannot remove announcement posts'], 403);
+        }
     }
     
     $postOwnerId = (int)$post['user_id'];
@@ -55,7 +71,7 @@ try {
         'from_user_id' => $admin_id,
         'post_id' => $post_id,
         'type' => 'post_deleted',
-        'message' => 'An admin removed your post.',
+        'message' => 'A moderator removed your post.',
         'snapshot' => $contentSnapshot
     ]);
     

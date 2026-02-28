@@ -166,7 +166,7 @@ try {
     
     // Notify all admins when a student posts, or when faculty posts a pending announcement
     if (($user['account_type'] === 'student' && $post_type === 'post') || ($user['account_type'] === 'faculty' && $post_type === 'announcement' && $announcement_status === 'pending')) {
-        $adminStmt = $pdo->prepare('SELECT id FROM users WHERE is_admin = 1 OR account_type = "admin"');
+        $adminStmt = $pdo->prepare('SELECT id FROM users WHERE account_type = "admin"');
         $adminStmt->execute();
         $admins = $adminStmt->fetchAll();
         $msg = $post_type === 'announcement' 

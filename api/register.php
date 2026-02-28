@@ -81,10 +81,9 @@ try {
     }
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
-    $isAdmin = ($accountType === 'admin') ? 1 : 0;
     $stmt = $pdo->prepare('
-        INSERT INTO users (username, email, password, name, bio, avatar, account_type, is_admin)
-        VALUES (:username, :email, :password, :name, :bio, :avatar, :account_type, :is_admin)
+        INSERT INTO users (username, email, password, name, bio, avatar, account_type)
+        VALUES (:username, :email, :password, :name, :bio, :avatar, :account_type)
     ');
     $stmt->execute([
         'username' => $username ?: null,
@@ -94,7 +93,6 @@ try {
         'bio' => '',
         'avatar' => 'assets/images/default-avatar.png',
         'account_type' => $accountType,
-        'is_admin' => $isAdmin,
     ]);
 
     $userId = (int)$pdo->lastInsertId();
@@ -109,7 +107,7 @@ try {
             'email' => $email,
             'avatar' => 'assets/images/default-avatar.png',
             'accountType' => $accountType,
-            'isAdmin' => (bool)$isAdmin
+            'isAdmin' => ($accountType === 'admin')
         ]
     ]);
 } catch (Exception $e) {

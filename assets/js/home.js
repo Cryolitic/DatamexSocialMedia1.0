@@ -12,6 +12,19 @@ let profileStats = { postCount: 0, followerCount: 0, followingCount: 0 };
 let isNewUser = false;
 let focusPostId = null; // post to scroll to when coming from a notification
 let profileStatsRequestSeq = 0; // prevent stale async profile stats overwriting latest values
+let currentUserRole = 'student';
+
+function isAdminRole() {
+    return currentUserRole === 'admin' || !!(currentUser && currentUser.isAdmin);
+}
+
+function isStaffRole() {
+    return currentUserRole === 'faculty';
+}
+
+function isModeratorRole() {
+    return isAdminRole() || isStaffRole();
+}
  
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -22,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     currentUser = JSON.parse(userData);
+    currentUserRole = currentUser?.accountType || (currentUser?.isAdmin ? 'admin' : 'student');
     
     // Check account status (banned/locked)
     await checkAccountStatus();
@@ -117,9 +131,23 @@ function initializePage() {
         if (pr) pr.style.display = this.checked ? 'none' : 'flex';
     });
     
-    // Show admin menu item for admins
-    if (currentUser.accountType === 'admin' || currentUser.isAdmin) {
+    // Show moderation menu item for admins and staff
+    if (isModeratorRole()) {
         document.getElementById('adminMenuItem').style.display = 'block';
+    }
+
+    // Staff moderation scope: student activities + accounts + reports (no announcements/logs)
+    if (isStaffRole()) {
+        const tabIds = ['announcements-tab', 'logs-tab'];
+        const paneIds = ['announcements', 'logs'];
+        tabIds.forEach((id) => {
+            const tab = document.getElementById(id);
+            if (tab && tab.parentElement) tab.parentElement.style.display = 'none';
+        });
+        paneIds.forEach((id) => {
+            const pane = document.getElementById(id);
+            if (pane) pane.style.display = 'none';
+        });
     }
 }
 
@@ -468,7 +496,7 @@ function loadMyProfileStats() {
                 followerCount: data.profile.followerCount ?? 0,
                 followingCount: data.profile.followingCount ?? 0,
             };
-            const isAdmin = currentUser.accountType === 'admin' || currentUser.isAdmin;
+            const isAdmin = isAdminRole();
             isNewUser = !isAdmin && profileStats.followingCount === 0;
             document.getElementById('postCount').textContent = profileStats.postCount;
             document.getElementById('followerCount').textContent = profileStats.followerCount;
@@ -806,7 +834,7 @@ function loadPosts() {
 
 function renderPosts() {
     // Admins can always see posts, bypass new user guide
-    const isAdmin = currentUser && (currentUser.accountType === 'admin' || currentUser.isAdmin);
+    const isAdmin = isAdminRole();
     if (!isAdmin && isNewUser && currentView === 'home') {
         renderNewUserGuide();
         return;
@@ -845,6 +873,9 @@ function renderPosts() {
 function createPostElement(post) {
     const div = document.createElement('div');
     const isAnnouncement = post.post_type === 'announcement';
+    const isAdminPost = post.account_type === 'admin';
+    const canStaffModerateThisPost = !isAdminPost && !isAnnouncement;
+    const showModeratorMenu = isAdminRole() || (isStaffRole() && canStaffModerateThisPost);
     div.className = 'post-card' + (isAnnouncement ? ' announcement' : '');
     div.dataset.postId = post.id;
     
@@ -873,9 +904,9 @@ function createPostElement(post) {
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                 </div>
-            ` : (currentUser && (currentUser.accountType === 'admin' || currentUser.isAdmin) ? `
+            ` : (showModeratorMenu ? `
                 <div class="post-actions-menu">
-                    <button class="post-menu-btn admin-action-btn" onclick="showAdminPostMenu(${post.id}, ${post.user_id})" title="Admin Actions">
+                    <button class="post-menu-btn admin-action-btn" onclick="showAdminPostMenu(${post.id}, ${post.user_id}, '${post.account_type || 'student'}', '${post.post_type || 'post'}')" title="Moderator Actions">
                         <i class="fas fa-shield-alt"></i>
                     </button>
                 </div>
@@ -1095,7 +1126,7 @@ function focusUserSearch() {
 
 function updateOnboardingState() {
     // Admins can always see posts, bypass new user guide
-    const isAdmin = currentUser && (currentUser.accountType === 'admin' || currentUser.isAdmin);
+    const isAdmin = isAdminRole();
     if (!isAdmin && isNewUser && currentView === 'home') {
         renderNewUserGuide();
         return;
@@ -2327,15 +2358,16 @@ function deleteNote(noteId) {
 // ===== ADMIN FUNCTIONS =====
 
 function loadAdminData() {
-    if (!currentUser || (currentUser.accountType !== 'admin' && !currentUser.isAdmin)) {
+    if (!isModeratorRole()) {
         return;
     }
-    
-    renderStudentActivities();
     renderAccounts();
-    renderAnnouncements();
+    renderStudentActivities();
     renderReports();
-    renderLogs();
+    if (isAdminRole()) {
+        renderAnnouncements();
+        renderLogs();
+    }
 }
 
 function renderStudentActivities() {
@@ -2352,6 +2384,7 @@ function renderStudentActivities() {
                 return;
             }
             
+            const admin = isAdminRole();
             container.innerHTML = data.activities.map(activity => {
                 const timeAgo = getTimeAgo(activity.timestamp);
                 const warningBadge = activity.warnings > 0 
@@ -2368,8 +2401,8 @@ function renderStudentActivities() {
                                 <img src="${activity.avatar}" class="admin-activity-avatar" onerror="this.src='https://via.placeholder.com/40'">
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
-                                        <strong>${escapeHtml(activity.name)}</strong>
-                                        <span class="text-muted">@${escapeHtml(activity.username)}</span>
+                                        <strong class="text-dark">${escapeHtml(activity.name)}</strong>
+                                        <span class="text-dark">@${escapeHtml(activity.username)}</span>
                                         ${warningBadge}
                                         ${statusBadge}
                                     </div>
@@ -2382,18 +2415,18 @@ function renderStudentActivities() {
                                         <button class="btn btn-sm btn-warning" onclick="adminWarnUser(${activity.user_id}, ${activity.id}, 'post')">
                                             <i class="fas fa-exclamation-triangle"></i> Warn
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="adminBanUser(${activity.user_id})">
+                                        ${admin ? `<button class="btn btn-sm btn-danger" onclick="adminBanUser(${activity.user_id})">
                                             <i class="fas fa-ban"></i> Ban
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="adminLockUser(${activity.user_id})">
+                                        </button>` : ''}
+                                        ${admin ? `<button class="btn btn-sm btn-outline-warning" onclick="adminLockUser(${activity.user_id})">
                                             <i class="fas fa-lock"></i> Lock
-                                        </button>
+                                        </button>` : ''}
                                         <button class="btn btn-sm btn-outline-danger" onclick="adminDeletePost(${activity.id})">
                                             <i class="fas fa-trash"></i> Delete Post
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="adminDeleteUser(${activity.user_id})">
+                                        ${admin ? `<button class="btn btn-sm btn-outline-danger" onclick="adminDeleteUser(${activity.user_id})">
                                             <i class="fas fa-user-times"></i> Delete Account
-                                        </button>
+                                        </button>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -2406,8 +2439,8 @@ function renderStudentActivities() {
                                 <img src="${activity.avatar}" class="admin-activity-avatar" onerror="this.src='https://via.placeholder.com/40'">
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
-                                        <strong>${escapeHtml(activity.name)}</strong>
-                                        <span class="text-muted">@${escapeHtml(activity.username)}</span>
+                                        <strong class="text-dark">${escapeHtml(activity.name)}</strong>
+                                        <span class="text-dark">@${escapeHtml(activity.username)}</span>
                                         ${warningBadge}
                                         ${statusBadge}
                                     </div>
@@ -2421,15 +2454,18 @@ function renderStudentActivities() {
                                         <button class="btn btn-sm btn-warning" onclick="adminWarnUser(${activity.user_id}, ${activity.id}, 'comment')">
                                             <i class="fas fa-exclamation-triangle"></i> Warn
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="adminBanUser(${activity.user_id})">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="adminDeletePost(${activity.post_id})">
+                                            <i class="fas fa-trash"></i> Remove Related Post
+                                        </button>
+                                        ${admin ? `<button class="btn btn-sm btn-danger" onclick="adminBanUser(${activity.user_id})">
                                             <i class="fas fa-ban"></i> Ban
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="adminLockUser(${activity.user_id})">
+                                        </button>` : ''}
+                                        ${admin ? `<button class="btn btn-sm btn-outline-warning" onclick="adminLockUser(${activity.user_id})">
                                             <i class="fas fa-lock"></i> Lock
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="adminDeleteUser(${activity.user_id})">
+                                        </button>` : ''}
+                                        ${admin ? `<button class="btn btn-sm btn-outline-danger" onclick="adminDeleteUser(${activity.user_id})">
                                             <i class="fas fa-user-times"></i> Delete Account
-                                        </button>
+                                        </button>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -2447,6 +2483,7 @@ function renderStudentActivities() {
 function renderAccounts() {
     const container = document.getElementById('accountsList');
     if (!container) return;
+    const admin = isAdminRole();
     
     container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
     
@@ -2475,20 +2512,47 @@ function renderAccounts() {
                         </thead>
                         <tbody>
                             ${data.accounts.map(a => `
+                                ${(() => {
+                                    const isTargetAdmin = a.account_type === 'admin';
+                                    const showRoleDropdown = admin && !isTargetAdmin;
+                                    const showWarn = !isTargetAdmin;
+                                    const showBan = admin && !isTargetAdmin;
+                                    return `
                                 <tr>
                                     <td>${escapeHtml(a.name || '-')}</td>
                                     <td>@${escapeHtml(a.username || '')}</td>
                                     <td>${escapeHtml(a.email || '')}</td>
-                                    <td><span class="badge ${a.account_type === 'faculty' ? 'bg-info' : 'bg-secondary'}">${a.account_type}</span></td>
+                                    <td><span class="badge ${a.account_type === 'admin' ? 'bg-danger' : (a.account_type === 'faculty' ? 'bg-info' : 'bg-secondary')}">${a.account_type}</span></td>
                                     <td><span class="badge bg-${a.status === 'active' ? 'success' : 'danger'}">${a.status}</span></td>
                                     <td>${a.warnings}</td>
                                     <td>${getTimeAgo(a.created_at)}</td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary" onclick="openUserProfile(${a.id})">View</button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="adminWarnUser(${a.id}, 0, 'account')">Warn</button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="adminBanUser(${a.id})">Ban</button>
+                                        ${showRoleDropdown ? `
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    Role
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <button class="dropdown-item ${a.account_type === 'student' ? 'active' : ''}" onclick="adminChangeUserRole(${a.id}, 'student', '${a.account_type}')">
+                                                            ${a.account_type === 'student' ? '<i class="fas fa-check me-2"></i>' : '<span class="me-3"></span>'}Student
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button class="dropdown-item ${a.account_type === 'faculty' ? 'active' : ''}" onclick="adminChangeUserRole(${a.id}, 'faculty', '${a.account_type}')">
+                                                            ${a.account_type === 'faculty' ? '<i class="fas fa-check me-2"></i>' : '<span class="me-3"></span>'}Faculty
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                        ${showWarn ? `<button class="btn btn-sm btn-outline-warning" onclick="adminWarnUser(${a.id}, 0, 'account')">Warn</button>` : ''}
+                                        ${showBan ? `<button class="btn btn-sm btn-outline-danger" onclick="adminBanUser(${a.id})">Ban</button>` : ''}
                                     </td>
                                 </tr>
+                                `;
+                                })()}
                             `).join('')}
                         </tbody>
                     </table>
@@ -2587,30 +2651,38 @@ function adminApproveAnnouncement(postId) {
         .catch(() => Swal.fire('Error', 'Failed to approve', 'error'));
 }
 
-function showAdminPostMenu(postId, userId) {
-    if (!currentUser || (currentUser.accountType !== 'admin' && !currentUser.isAdmin)) {
+function showAdminPostMenu(postId, userId, targetAccountType = 'student', postType = 'post') {
+    if (!isModeratorRole()) {
+        return;
+    }
+    const admin = isAdminRole();
+    const canWarn = admin || targetAccountType !== 'admin';
+    const canDeletePost = admin || (targetAccountType !== 'admin' && postType !== 'announcement');
+
+    if (!canWarn && !canDeletePost) {
+        Swal.fire('Not allowed', 'Staff cannot warn admins or remove admin/announcement posts.', 'warning');
         return;
     }
     
     Swal.fire({
-        title: 'Admin Actions',
+        title: admin ? 'Admin Actions' : 'Staff Actions',
         html: `
             <div class="text-start">
-                <button class="btn btn-warning w-100 mb-2" onclick="adminWarnUser(${userId}, ${postId}, 'post')">
+                ${canWarn ? `<button class="btn btn-warning w-100 mb-2" onclick="adminWarnUser(${userId}, ${postId}, 'post')">
                     <i class="fas fa-exclamation-triangle"></i> Warn User
-                </button>
-                <button class="btn btn-danger w-100 mb-2" onclick="adminBanUser(${userId})">
+                </button>` : ''}
+                ${admin ? `<button class="btn btn-danger w-100 mb-2" onclick="adminBanUser(${userId})">
                     <i class="fas fa-ban"></i> Ban User
-                </button>
-                <button class="btn btn-outline-warning w-100 mb-2" onclick="adminLockUser(${userId})">
+                </button>` : ''}
+                ${admin ? `<button class="btn btn-outline-warning w-100 mb-2" onclick="adminLockUser(${userId})">
                     <i class="fas fa-lock"></i> Lock Account
-                </button>
-                <button class="btn btn-outline-danger w-100 mb-2" onclick="adminDeletePost(${postId})">
+                </button>` : ''}
+                ${canDeletePost ? `<button class="btn btn-outline-danger w-100 mb-2" onclick="adminDeletePost(${postId})">
                     <i class="fas fa-trash"></i> Delete Post
-                </button>
-                <button class="btn btn-outline-danger w-100" onclick="adminDeleteUser(${userId})">
+                </button>` : ''}
+                ${admin ? `<button class="btn btn-outline-danger w-100" onclick="adminDeleteUser(${userId})">
                     <i class="fas fa-user-times"></i> Delete Account
-                </button>
+                </button>` : ''}
             </div>
         `,
         showConfirmButton: false,
@@ -2658,6 +2730,50 @@ function adminWarnUser(userId, itemId, itemType) {
             })
             .catch(() => Swal.fire('Error', 'Failed to warn user', 'error'));
         }
+    });
+}
+
+function adminChangeUserRole(userId, newRole, currentRole) {
+    if (!isAdminRole()) {
+        Swal.fire('Unauthorized', 'Only admins can change user roles.', 'error');
+        return;
+    }
+
+    if (newRole === currentRole) {
+        return;
+    }
+
+    const roleLabel = newRole === 'faculty' ? 'Faculty' : 'Student';
+    Swal.fire({
+        title: 'Change User Role',
+        text: `Set this account role to ${roleLabel}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Confirm',
+        confirmButtonColor: '#2563eb'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        fetch('api/admin_chnage_user_role.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                admin_id: currentUser.id,
+                user_id: userId,
+                account_type: newRole
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Updated', `Role changed to ${roleLabel}.`, 'success').then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to change role', 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to change role', 'error'));
     });
 }
 
@@ -2849,7 +2965,7 @@ function renderReports() {
     
     container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
     
-    fetch('api/get_reports.php')
+    fetch(`api/get_reports.php?moderator_id=${currentUser.id}`)
         .then(r => r.json())
         .then(data => {
             if (!data.success || !data.reports || data.reports.length === 0) {
@@ -2857,8 +2973,11 @@ function renderReports() {
                 return;
             }
             
+            const isStaff = isStaffRole();
             container.innerHTML = data.reports.map(report => {
                 const timeAgo = getTimeAgo(report.created_at);
+                const canRemove = !isStaff || (report.post_owner_account_type !== 'admin' && report.post_type !== 'announcement');
+                const showStatusBadge = !(isStaff && !canRemove);
                 return `
                     <div class="admin-report-item">
                         <div class="d-flex align-items-start gap-3">
@@ -2866,7 +2985,7 @@ function renderReports() {
                                 <div class="d-flex align-items-center gap-2 mb-2">
                                     <strong>Reported by:</strong>
                                     <span>${escapeHtml(report.reporter_name)} (@${escapeHtml(report.reporter_username)})</span>
-                                    <span class="badge bg-warning text-dark">${report.status}</span>
+                                    ${showStatusBadge ? `<span class="badge bg-warning text-dark">${report.status}</span>` : ''}
                                 </div>
                                 <div class="admin-report-content mb-2">
                                     <strong>Post Content:</strong>
@@ -2880,9 +2999,9 @@ function renderReports() {
                                     <small class="text-muted">${timeAgo}</small>
                                 </div>
                                 <div class="admin-report-actions">
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeReportedPost(${report.post_id}, ${report.id})">
+                                    ${canRemove ? `<button class="btn btn-sm btn-outline-danger" onclick="removeReportedPost(${report.post_id}, ${report.id}, '${report.post_owner_account_type || 'student'}', '${report.post_type || 'post'}')">
                                         <i class="fas fa-trash"></i> Remove Post
-                                    </button>
+                                    </button>` : ''}
                                     <button class="btn btn-sm btn-outline-secondary" onclick="dismissReport(${report.id})">
                                         <i class="fas fa-times"></i> Dismiss
                                     </button>
@@ -2904,7 +3023,7 @@ function renderLogs() {
     
     container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
     
-    fetch('api/get_logs.php')
+    fetch(`api/get_logs.php?admin_id=${currentUser.id}`)
         .then(r => r.json())
         .then(data => {
             if (!data.success || !data.logs || data.logs.length === 0) {
@@ -2940,7 +3059,11 @@ function renderLogs() {
         });
 }
 
-function removeReportedPost(postId, reportId) {
+function removeReportedPost(postId, reportId, ownerType = 'student', postType = 'post') {
+    if (isStaffRole() && (ownerType === 'admin' || postType === 'announcement')) {
+        Swal.fire('Not allowed', 'Staff cannot remove admin or announcement posts.', 'warning');
+        return;
+    }
     Swal.fire({
         title: 'Remove Reported Post?',
         text: "This will delete the post and resolve the report.",

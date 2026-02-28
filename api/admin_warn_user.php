@@ -27,20 +27,26 @@ $reason = trim($input['reason']);
 try {
     $pdo = db();
     
-    // Verify admin
-    $adminCheck = $pdo->prepare('SELECT id FROM users WHERE id = :id AND (is_admin = 1 OR account_type = "admin")');
+    // Verify moderator (admin or staff/faculty)
+    $adminCheck = $pdo->prepare('SELECT id, account_type FROM users WHERE id = :id AND account_type IN ("admin", "faculty")');
     $adminCheck->execute(['id' => $admin_id]);
-    if (!$adminCheck->fetch()) {
+    $moderator = $adminCheck->fetch();
+    if (!$moderator) {
         json_response(['success' => false, 'message' => 'Unauthorized'], 403);
     }
     
     // Get user
-    $userStmt = $pdo->prepare('SELECT id, warnings, warning_reasons FROM users WHERE id = :id');
+    $userStmt = $pdo->prepare('SELECT id, account_type, warnings, warning_reasons FROM users WHERE id = :id');
     $userStmt->execute(['id' => $user_id]);
     $user = $userStmt->fetch();
     
     if (!$user) {
         json_response(['success' => false, 'message' => 'User not found'], 404);
+    }
+
+    // Faculty cannot warn admins.
+    if ($moderator['account_type'] === 'faculty' && $user['account_type'] === 'admin') {
+        json_response(['success' => false, 'message' => 'Faculty cannot warn admin accounts'], 403);
     }
     
     // Get admin name for notification

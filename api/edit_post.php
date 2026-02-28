@@ -41,10 +41,10 @@ try {
     }
 
     // Verify owner or admin
-    $userStmt = $pdo->prepare('SELECT is_admin FROM users WHERE id = :id');
+    $userStmt = $pdo->prepare('SELECT account_type FROM users WHERE id = :id');
     $userStmt->execute(['id' => $user_id]);
     $userRow = $userStmt->fetch();
-    $isAdmin = $userRow ? (bool)$userRow['is_admin'] : false;
+    $isAdmin = $userRow && ($userRow['account_type'] === 'admin');
     if ($post['user_id'] != $user_id && !$isAdmin) {
         json_response(['success' => false, 'message' => 'Unauthorized'], 403);
     }
