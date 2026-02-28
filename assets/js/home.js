@@ -576,7 +576,7 @@ function handleMediaPreview(e) {
 
     // Validate all files
     for (const file of selectedMediaFiles) {
-        if (!validateFile(file)) {
+        if (!validateFile(file, { allowVideo: true, maxSizeMB: 30 })) {
             selectedMediaFiles = [];
             document.getElementById('postMedia').value = '';
             preview.style.display = 'none';
@@ -590,34 +590,47 @@ function handleMediaPreview(e) {
     preview.classList.add('media-preview-grid');
     selectedMediaFiles.forEach((file) => {
         const url = URL.createObjectURL(file);
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Preview';
-        preview.appendChild(img);
+        if (file.type.startsWith('video/')) {
+            const video = document.createElement('video');
+            video.src = url;
+            video.muted = true;
+            video.controls = true;
+            video.playsInline = true;
+            preview.appendChild(video);
+        } else {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Preview';
+            preview.appendChild(img);
+        }
     });
 }
 
-function validateFile(file) {
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
+function validateFile(file, options = {}) {
+    const allowVideo = !!options.allowVideo;
+    const maxSizeMB = Number(options.maxSizeMB || 5);
+    const maxSize = maxSizeMB * 1024 * 1024;
+
+    if ((file.size || 0) > maxSize) {
         Swal.fire({
             icon: 'error',
             title: 'File Too Large',
-            text: 'Maximum file size is 5MB',
+            text: `Maximum file size is ${maxSizeMB}MB`,
             confirmButtonColor: '#6366f1'
         });
         document.getElementById('postMedia').value = '';
         return false;
     }
-    
-    // Check file format (PNG/JPG)
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
+    // Check file format
+    const allowedTypes = allowVideo
+        ? ['image/png', 'image/jpeg', 'image/jpg', 'video/mp4']
+        : ['image/png', 'image/jpeg', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
         Swal.fire({
             icon: 'error',
             title: 'Invalid File Format',
-            text: 'Only PNG and JPG images are allowed',
+            text: allowVideo ? 'Only PNG, JPG, and MP4 files are allowed' : 'Only PNG and JPG images are allowed',
             confirmButtonColor: '#6366f1'
         });
         document.getElementById('postMedia').value = '';
@@ -638,7 +651,7 @@ function createPost() {
         Swal.fire({
             icon: 'warning',
             title: 'Empty Post',
-            text: 'Please enter some content or add a photo',
+            text: 'Please enter some content or add a photo/video',
             confirmButtonColor: '#6366f1'
         });
         return;
@@ -669,7 +682,19 @@ function createPost() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(async (response) => {
+        const raw = await response.text();
+        let data = null;
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            throw new Error(raw || `Request failed with status ${response.status}`);
+        }
+        if (!response.ok) {
+            throw new Error(data?.message || `Request failed with status ${response.status}`);
+        }
+        return data;
+    })
     .then(data => {
         if (data.success) {
             const isFacAnn = isAnnouncement && (currentUser.accountType === 'faculty');
@@ -705,6 +730,18 @@ function createPost() {
     })
     .catch(error => {
         console.error('Error:', error);
+        const msg = (error && error.message ? String(error.message) : '').replace(/<[^>]*>/g, ' ').trim();
+        if (msg && !msg.toLowerCase().includes('unexpected token')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Upload Failed',
+                text: msg.slice(0, 300),
+                confirmButtonColor: '#6366f1'
+            });
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            return;
+        }
         // Demo mode - create post locally
         const newPost = {
             id: Date.now(),
@@ -1069,27 +1106,41 @@ function updateOnboardingState() {
 function renderPostMedia(post) {
     if (!post || !post.media) return '';
 
-    // Support both single string and array of strings
-    const items = Array.isArray(post.media) ? post.media : [post.media];
-    const images = items.filter(Boolean);
-    if (images.length === 0) return '';
+    // Support both single string and array, including legacy object item {url}
+    const items = (Array.isArray(post.media) ? post.media : [post.media])
+        .map((item) => (item && typeof item === 'object' ? item.url : item))
+        .filter(Boolean);
+    if (items.length === 0) return '';
 
     const maxShow = 4;
-    const shown = images.slice(0, maxShow);
-    const remaining = images.length - shown.length;
+    const shown = items.slice(0, maxShow);
+    const remaining = items.length - shown.length;
 
-    // Click to view bigger (simple viewer)
-    const openAttr = (src) => `onclick="openMediaViewer('${String(src).replace(/'/g, "\\'")}')"`;
+    const isVideoSrc = (src) => {
+        const s = String(src || '').toLowerCase();
+        return s.includes('/video/upload/') || s.endsWith('.mp4');
+    };
+    const openAttr = (src) => `onclick="openMediaViewer('${String(src).replace(/'/g, "\\'")}', ${isVideoSrc(src)})"`;
+    const renderItem = (src, thumbClass = 'post-media-thumb') => {
+        if (isVideoSrc(src)) {
+            return `<video src="${src}" class="${thumbClass}" controls playsinline></video>`;
+        }
+        return `<img src="${src}" alt="Post media" class="${thumbClass}" ${openAttr(src)}>`;
+    };
 
-    if (images.length === 1) {
-        return `<img src="${images[0]}" alt="Post media" class="post-media" ${openAttr(images[0])}>`;
+    if (items.length === 1) {
+        const src = items[0];
+        if (isVideoSrc(src)) {
+            return `<video src="${src}" class="post-media" controls playsinline></video>`;
+        }
+        return `<img src="${src}" alt="Post media" class="post-media" ${openAttr(src)}>`;
     }
 
     return `
         <div class="post-media-grid count-${shown.length}">
             ${shown.map((src, idx) => `
                 <div class="post-media-cell ${idx === 0 ? 'first' : ''}">
-                    <img src="${src}" alt="Post media" class="post-media-thumb" ${openAttr(src)}>
+                    ${renderItem(src)}
                     ${idx === shown.length - 1 && remaining > 0 ? `<div class="post-media-more" ${openAttr(src)}>+${remaining}</div>` : ''}
                 </div>
             `).join('')}
@@ -1097,8 +1148,17 @@ function renderPostMedia(post) {
     `;
 }
 
-function openMediaViewer(src) {
+function openMediaViewer(src, isVideo = false) {
     if (!src) return;
+    if (isVideo) {
+        Swal.fire({
+            html: `<video src="${src}" controls autoplay playsinline style="max-width:100%;max-height:70vh;"></video>`,
+            showConfirmButton: false,
+            showCloseButton: true,
+            background: '#0f172a'
+        });
+        return;
+    }
     Swal.fire({
         imageUrl: src,
         imageAlt: 'Media',
@@ -1932,6 +1992,12 @@ function renderStories() {
 function handleStoryUpload(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    const maxStorySize = 30 * 1024 * 1024; // 30MB
+    if ((file.size || 0) > maxStorySize) {
+        Swal.fire('Error', 'Story file exceeds 30MB limit', 'error');
+        e.target.value = '';
+        return;
+    }
     const formData = new FormData();
     formData.append('user_id', currentUser.id);
     formData.append('media', file);

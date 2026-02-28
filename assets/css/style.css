@@ -1131,6 +1131,12 @@ button#viewAnnouncementsBtn.action-btn i {
     border-radius: 15px;
 }
 
+.media-preview video {
+    width: 100%;
+    max-height: 400px;
+    border-radius: 15px;
+}
+
 /* Post Card */
 .post-card {
     background: #ffffff;
