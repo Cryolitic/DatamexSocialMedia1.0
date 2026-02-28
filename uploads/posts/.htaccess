@@ -1,9 +1,0 @@
-# Protect post uploads
-# Only allow image access
-<FilesMatch "\.(jpg|jpeg|png|gif)$">
-    Order Allow,Deny
-    Allow from all
-</FilesMatch>
-
-# Deny PHP execution
-php_flag engine off

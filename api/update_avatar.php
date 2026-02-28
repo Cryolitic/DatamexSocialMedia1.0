@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -32,27 +33,53 @@ if ($file['size'] > $max_size) {
 
 $allowed_types = ['image/png', 'image/jpeg', 'image/jpg'];
 $file_type = mime_content_type($file['tmp_name']);
+$uploadApi = cloudinary_upload_api();
 if (!in_array($file_type, $allowed_types)) {
     json_response(['success' => false, 'message' => 'Only PNG and JPG are allowed'], 400);
 }
-
-$extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-$filename = uniqid('avatar_') . '.' . $extension;
-$upload_dir = __DIR__ . '/../uploads/avatars/';
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
+try{
+    $uploadResult = $uploadApi->upload($file['tmp_name'],[
+        'folder' => 'uploads/avatars',
+        'resource_type' => 'auto'
+    ]);
+    $avatar_id = json_encode([
+        'public_id' => $uploadResult['public_id'],
+        'resource_type' => $uploadResult['resource_type']
+    ]);
+    $avatar_url = $uploadResult['secure_url'];
+} catch (Exception $e){
+    json_response([
+        'success' => false,
+        'message' => 'Cloud Upload failed: '. $e->getMessage()
+    ]);
 }
-$avatar_path = $upload_dir . $filename;
-if (!move_uploaded_file($file['tmp_name'], $avatar_path)) {
-    json_response(['success' => false, 'message' => 'Failed to upload file'], 500);
-}
-
-$avatar_url = 'uploads/avatars/' . $filename;
 
 try {
     $pdo = db();
-    $stmt = $pdo->prepare('UPDATE users SET avatar = :avatar WHERE id = :id');
-    $stmt->execute(['avatar' => $avatar_url, 'id' => $user_id]);
+    $stmt = $pdo->prepare('SELECT avatar, avatar_id FROM users WHERE id =:id ');
+    $stmt->execute(['id' => $user_id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $currentAvatar = $row['avatar'] ?? null;
+    $currentAvatarId = json_decode($row['avatar_id'] ?? '', true);
+    $isCloudinary = is_string($currentAvatar) && str_contains($currentAvatar, 'res.cloudinary.com/');
+    if (!empty($currentAvatar) && $isCloudinary && is_array($currentAvatarId)) {
+        try{
+            $uploadApi->destroy($currentAvatarId['public_id'],[
+                'resource_type' => $currentAvatarId['resource_type'] ?? 'image',
+                'invalidate' => true
+            ]);
+        }catch (Exception $e) {
+            json_response(['success' => false, 'message' => 'Cloud Deletion'.$e->getMessage()], 500);
+        }
+    }
+} catch (Exception $e) {
+    json_response(['success' => false, 'message' => 'Server error'], 500);
+}
+
+try {
+    $pdo = db();
+    $stmt = $pdo->prepare('UPDATE users SET avatar = :avatar, avatar_id = :avatar_id WHERE id = :id');
+    $stmt->execute(['avatar' => $avatar_url,'avatar_id' => $avatar_id, 'id' => $user_id]);
 
     json_response(['success' => true, 'avatar' => $avatar_url]);
 } catch (Exception $e) {

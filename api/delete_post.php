@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -20,6 +22,8 @@ if (!$input || !isset($input['post_id']) || !isset($input['user_id'])) {
     json_response(['success' => false, 'message' => 'Post ID and user are required'], 400);
 }
 
+
+$uploadApi = cloudinary_upload_api();
 $post_id = intval($input['post_id']);
 $user_id = intval($input['user_id']);
 
@@ -34,33 +38,33 @@ try {
     }
 
     // Verify owner or admin
-    $userStmt = $pdo->prepare('SELECT is_admin FROM users WHERE id = :id');
-    $userStmt->execute(['id' => $user_id]);
-    $user = $userStmt->fetch();
-    $isAdmin = $user ? (bool)$user['is_admin'] : false;
-    if ($post['user_id'] != $user_id && !$isAdmin) {
-        json_response(['success' => false, 'message' => 'Unauthorized'], 403);
-    }
-
-    $del = $pdo->prepare('DELETE FROM posts WHERE id = :id');
-    $del->execute(['id' => $post_id]);
+    
 
     if (!empty($post['media_urls'])) {
         $decoded = json_decode($post['media_urls'], true);
         if (is_array($decoded)) {
-            foreach ($decoded as $mediaPath) {
-                if (!is_string($mediaPath) || $mediaPath === '') {
+            foreach ($decoded as $media) {
+                if (!is_array($media) || empty($media['public_id'])) {
                     continue;
                 }
-                if (str_starts_with($mediaPath, 'uploads/posts/')) {
-                    $path = __DIR__ . '/../' . $mediaPath;
-                    if (file_exists($path)) {
-                        @unlink($path);
-                    }
+                try {
+                    $uploadApi->destroy($media['public_id'],[
+                    'resource_type' => $media['resource_type'] ?? 'image',
+                    'invalidate' => true
+                    ]);
+                } catch(Exception $e) {
+                    json_response([
+                        'success' => false,
+                        'message' => 'Cloud delete failed: ' . $e->getMessage()
+                    ], 500);
                 }
             }
         }
     }
+
+    
+    $del = $pdo->prepare('DELETE FROM posts WHERE id = :id');
+    $del->execute(['id' => $post_id]);
 
     json_response(['success' => true, 'message' => 'Post deleted successfully']);
 } catch (Exception $e) {

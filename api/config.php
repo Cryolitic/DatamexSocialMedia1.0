@@ -9,6 +9,9 @@ const DB_NAME = 'socmec_datamex';
 const DB_USER = 'root';
 const DB_PASS = '';
 const pass = 'ragj sdfu yktt xxwi';
+const cloud_name = 'dmkoc4lis';
+const a_key = '144113122467983';
+const sec = '3u7sjMGJ3Mv9pVJOmez_verPJOY';
  
 function db(): PDO {
     static $pdo = null;
@@ -383,4 +386,26 @@ function log_admin_action(PDO $pdo, int $adminId, string $action, string $detail
         'details' => $details
     ]);
 }
+
+// Cloudinary function
+function cloudinary_upload_api(): \Cloudinary\Api\Upload\UploadApi {
+    static $configured = false;
+
+    if (!$configured) {
+        \Cloudinary\Configuration\Configuration::instance([
+            'cloud' => [
+                'cloud_name' => cloud_name,
+                'api_key' => a_key,
+                'api_secret' => sec,
+            ],
+            'url' => ['secure' => true]
+        ]);
+        $configured = true;
+    }
+
+    return new \Cloudinary\Api\Upload\UploadApi();
+}
+
+// default avatar
+const defaultAvatar = 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772225107/default-avatar_ylfaff.png';
 ?>
