@@ -2,6 +2,18 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
+function upload_error_message(int $code): string {
+    return match ($code) {
+        UPLOAD_ERR_INI_SIZE => 'Upload failed: file exceeds server upload_max_filesize limit.',
+        UPLOAD_ERR_FORM_SIZE => 'Upload failed: file exceeds form size limit.',
+        UPLOAD_ERR_PARTIAL => 'Upload failed: file was only partially uploaded.',
+        UPLOAD_ERR_NO_FILE => 'Upload failed: no file was uploaded.',
+        UPLOAD_ERR_NO_TMP_DIR => 'Upload failed: missing temporary folder.',
+        UPLOAD_ERR_CANT_WRITE => 'Upload failed: cannot write file to disk.',
+        UPLOAD_ERR_EXTENSION => 'Upload failed: blocked by a PHP extension.',
+        default => 'Upload failed due to unknown error.',
+    };
+}
 
 
 header('Content-Type: application/json');
@@ -54,17 +66,17 @@ if (isset($_FILES['media'])) {
         $files[] = $upload;
     }
 
-    $max_size = 5 * 1024 * 1024;
+    $max_size = 30 * 1024 * 1024; // 30MB
     $allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'video/mp4'];
     
     
 
     foreach ($files as $file) {
         if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
-            continue;
+            json_response(['success' => false, 'message' => upload_error_message((int)($file['error'] ?? UPLOAD_ERR_NO_FILE))], 400);
         }
-        if ($file['size'] > $max_size) {
-            json_response(['success' => false, 'message' => 'File size exceeds 5MB limit'], 400);
+        if (($file['size'] ?? 0) > $max_size) {
+            json_response(['success' => false, 'message' => 'File size exceeds 30MB limit'], 400);
         }
         $file_type = mime_content_type($file['tmp_name']);
         if (!in_array($file_type, $allowed_types)) {
