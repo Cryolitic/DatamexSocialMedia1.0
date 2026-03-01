@@ -13,6 +13,18 @@ let isNewUser = false;
 let focusPostId = null; // post to scroll to when coming from a notification
 let profileStatsRequestSeq = 0; // prevent stale async profile stats overwriting latest values
 let currentUserRole = 'student';
+let hasShownNewUserGuidePopup = false;
+let isNewUserGuideDismissedForAccount = false;
+
+function dismissNewUserGuideForever() {
+    hasShownNewUserGuidePopup = true;
+    isNewUserGuideDismissedForAccount = true;
+    fetch('api/dismiss_new_user_guide.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser.id })
+    }).catch(() => {});
+}
 
 function isAdminRole() {
     return currentUserRole === 'admin' || !!(currentUser && currentUser.isAdmin);
@@ -110,7 +122,11 @@ async function checkAccountStatus() {
 function initializePage() {
     // Set user profile info
     document.getElementById('profileName').textContent = currentUser.name || currentUser.username;
-    document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+    const profileUsernameEl = document.getElementById('profileUsername');
+    if (profileUsernameEl) {
+        profileUsernameEl.textContent = '';
+        profileUsernameEl.style.display = 'none';
+    }
 
     syncAvatars(currentUser.avatar);
     setCoverPhoto(currentUser.cover_photo);
@@ -259,6 +275,24 @@ function setupEventListeners() {
                     const toggle = document.getElementById('navSearchToggle');
                     if (!toggle || !toggle.contains(e.target)) closeCompactSearch();
                 }
+            }
+        });
+    }
+
+    // Media viewer cleanup
+    const mediaViewerModal = document.getElementById('mediaViewerModal');
+    if (mediaViewerModal) {
+        mediaViewerModal.addEventListener('hidden.bs.modal', () => {
+            const imageEl = document.getElementById('mediaViewerImageEl');
+            const videoEl = document.getElementById('mediaViewerVideoEl');
+            if (videoEl) {
+                videoEl.pause();
+                videoEl.removeAttribute('src');
+                videoEl.classList.add('d-none');
+            }
+            if (imageEl) {
+                imageEl.removeAttribute('src');
+                imageEl.classList.add('d-none');
             }
         });
     }
@@ -459,26 +493,49 @@ function openUserProfile(userId) {
         .catch(() => {});
 }
 
+function cleanupModalArtifacts() {
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+}
+
 function showProfileChoice(profile) {
     if (!profile) return;
     window._profileChoiceTarget = profile;
-    const modal = new bootstrap.Modal(document.getElementById('profileChoiceModal'));
+    const modalEl = document.getElementById('profileChoiceModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const viewStoryBtn = document.getElementById('profileChoiceViewStory');
     const viewProfileBtn = document.getElementById('profileChoiceViewProfile');
     viewStoryBtn.style.display = (profile.hasStory === true) ? 'block' : 'none';
     viewStoryBtn.onclick = () => {
+        let handled = false;
+        const onHidden = () => {
+            if (handled) return;
+            handled = true;
+            cleanupModalArtifacts();
+            if (profile.hasStory) {
+                loadStories().then(() => {
+                    const u = storyUsers.find(x => x.user_id === profile.id);
+                    if (u) openStoryViewer(profile.id);
+                });
+            }
+        };
+        modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
         modal.hide();
-        if (profile.hasStory) {
-            loadStories().then(() => {
-                const u = storyUsers.find(x => x.user_id === profile.id);
-                if (u) openStoryViewer(profile.id);
-            });
-        }
+        setTimeout(onHidden, 300);
     };
     viewProfileBtn.onclick = () => {
+        let handled = false;
+        const onHidden = () => {
+            if (handled) return;
+            handled = true;
+            cleanupModalArtifacts();
+            setActiveNav('profile');
+            visitProfile(profile);
+        };
+        modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
         modal.hide();
-        setActiveNav('profile');
-        visitProfile(profile);
+        setTimeout(onHidden, 300);
     };
     modal.show();
 }
@@ -496,8 +553,9 @@ function loadMyProfileStats() {
                 followerCount: data.profile.followerCount ?? 0,
                 followingCount: data.profile.followingCount ?? 0,
             };
+            isNewUserGuideDismissedForAccount = !!data.profile.new_user_guide_dismissed;
             const isAdmin = isAdminRole();
-            isNewUser = !isAdmin && profileStats.followingCount === 0;
+            isNewUser = !isAdmin && profileStats.followingCount === 0 && !isNewUserGuideDismissedForAccount;
             document.getElementById('postCount').textContent = profileStats.postCount;
             document.getElementById('followerCount').textContent = profileStats.followerCount;
             document.getElementById('followingCount').textContent = profileStats.followingCount;
@@ -527,29 +585,39 @@ function updateViewHeader() {
     const h = document.getElementById('viewHeader');
     if (!h) return;
     if (currentView === 'profile' && viewedProfile) {
-        const isMe = viewedProfile.id === currentUser.id;
-        const followLabel = viewedProfile.isFollowed
-            ? 'Unfollow'
-            : (viewedProfile.isFollower ? 'Follow back' : 'Follow');
+        const isMe = Number(viewedProfile.id) === Number(currentUser.id);
+        const displayName = escapeHtml(viewedProfile.name || viewedProfile.username || 'Profile');
+        const bio = escapeHtml((viewedProfile.bio || '').trim());
+        const avatar = viewedProfile.avatar || 'assets/images/default-avatar.png';
+        const cover = (viewedProfile.cover_photo && String(viewedProfile.cover_photo).trim())
+            ? String(viewedProfile.cover_photo).trim()
+            : '';
+        const safeCover = cover.replace(/'/g, "\\'");
+        const friendLabel = viewedProfile.isFollowed ? 'Unfollow' : 'Follow';
+
         h.innerHTML = `
-            <div class="view-header-card">
-                <div>
-                    <div class="view-title">${isMe ? 'Your Profile' : escapeHtml(viewedProfile.name || viewedProfile.username || 'Profile')}</div>
-                    <div class="view-subtitle">
-                        ${isMe ? `@${escapeHtml(currentUser.username || '')}` : `Viewing @${escapeHtml(viewedProfile.username || '')}'s profile`}
-                        ${!isMe && viewedProfile.isFollower ? `<span class="pill-muted">Follows you</span>` : ''}
-                        ${!isMe && viewedProfile.account_type === 'student' ? `<span class="pill-muted">Student</span>` : ''}
+            <div class="view-header-card profile-view-header">
+                <div class="profile-view-cover ${cover ? '' : 'no-cover'}" ${cover ? `style="background-image:url('${safeCover}');"` : ''}></div>
+                <div class="profile-view-body">
+                    <img src="${avatar}" alt="${displayName}" class="profile-view-avatar avatar-zoom" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
+                    <div class="profile-view-meta">
+                        <div class="view-title">${displayName}</div>
+                        ${bio ? `<div class="view-subtitle profile-view-bio">${bio}</div>` : ''}
                     </div>
-                </div>
-                <div class="d-flex gap-2">
-                    ${!isMe ? `
-                        <button class="btn btn-sm ${viewedProfile.isFollowed ? 'btn-secondary' : 'btn-primary'}" onclick="toggleFollowProfile(${viewedProfile.id})">
-                            ${followLabel}
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-sm btn-primary" onclick="navigateTo('home')">
-                        <i class="fas fa-arrow-left"></i> Back to Feed
-                    </button>
+                    <div class="d-flex flex-wrap gap-2 ms-auto profile-view-actions">
+                        ${isMe ? `
+                            <button class="btn btn-sm btn-primary" onclick="document.getElementById('storyMediaInput')?.click()">
+                                <i class="fas fa-plus-circle"></i> Add Story
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="openProfileEditor()">
+                                <i class="fas fa-pen"></i> Edit Profile
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm ${viewedProfile.isFollowed ? 'btn-secondary' : 'profile-follow-btn'}" onclick="toggleFollowProfile(${viewedProfile.id})">
+                                <i class="fas ${viewedProfile.isFollowed ? 'fa-user-minus' : 'fa-user-plus'}"></i> ${friendLabel}
+                            </button>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -833,12 +901,6 @@ function loadPosts() {
 }
 
 function renderPosts() {
-    // Admins can always see posts, bypass new user guide
-    const isAdmin = isAdminRole();
-    if (!isAdmin && isNewUser && currentView === 'home') {
-        renderNewUserGuide();
-        return;
-    }
     const container = document.getElementById('timelinePosts');
     container.innerHTML = '';
     
@@ -958,7 +1020,11 @@ function updateProfileSidebar(profile) {
     
     // Update sidebar profile info
     document.getElementById('profileName').textContent = profile.name || profile.username;
-    document.getElementById('profileUsername').textContent = '@' + (profile.username || '');
+    const profileUsernameEl = document.getElementById('profileUsername');
+    if (profileUsernameEl) {
+        profileUsernameEl.textContent = '';
+        profileUsernameEl.style.display = 'none';
+    }
     
     // Update avatar - make clickable for View Story/Profile choice
     const sidebarAvatar = document.getElementById('sidebarProfileAvatar');
@@ -1096,23 +1162,57 @@ function setActiveNav(page) {
 }
 
 function renderNewUserGuide() {
-    const container = document.getElementById('timelinePosts');
-    if (!container) return;
-    container.innerHTML = `
-        <div class="onboard-card">
-            <h4>Welcome to Campus Connect!</h4>
-            <p>Para makita ang feed, mag-follow muna ng ibang users.</p>
-            <ul>
+    if (hasShownNewUserGuidePopup || Swal.isVisible() || isNewUserGuideDismissedForAccount) return;
+    hasShownNewUserGuidePopup = true;
+
+    Swal.fire({
+        title: 'Welcome to Campus Connect!',
+        html: `
+            <p class="text-muted">Para makita ang feed, mag-follow muna ng ibang users.</p>
+            <ul class="text-start">
                 <li>Gamitin ang search bar sa taas para hanapin ang classmates o orgs.</li>
                 <li>Kapag may fina-follow ka na, lalabas na ang mga posts sa feed.</li>
                 <li>Maaari ka ring gumawa ng sarili mong unang post.</li>
             </ul>
-            <div class="d-flex gap-2">
-                <button class="btn btn-primary btn-sm" onclick="focusUserSearch()">Find people</button>
-                <button class="btn btn-outline-light btn-sm" onclick="navigateTo('profile')">View my profile</button>
+            <div class="d-flex gap-2 justify-content-center mt-3">
+                <button id="guideFindPeopleBtn" class="btn btn-primary btn-sm">Find people</button>
+                <button id="guideViewProfileBtn" class="btn btn-outline-secondary btn-sm">View my profile</button>
+                <button id="guideCancelBtn" class="btn btn-secondary btn-sm">Cancel</button>
             </div>
-        </div>
-    `;
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        allowOutsideClick: true,
+        didOpen: () => {
+            const findBtn = document.getElementById('guideFindPeopleBtn');
+            const profileBtn = document.getElementById('guideViewProfileBtn');
+            const cancelBtn = document.getElementById('guideCancelBtn');
+            if (findBtn) {
+                findBtn.addEventListener('click', () => {
+                    dismissNewUserGuideForever();
+                    Swal.close();
+                    focusUserSearch();
+                });
+            }
+            if (profileBtn) {
+                profileBtn.addEventListener('click', () => {
+                    dismissNewUserGuideForever();
+                    Swal.close();
+                    navigateTo('profile');
+                });
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    dismissNewUserGuideForever();
+                    Swal.close();
+                });
+            }
+        }
+    }).then((result) => {
+        if (result.dismiss) {
+            dismissNewUserGuideForever();
+        }
+    });
 }
 
 function focusUserSearch() {
@@ -1125,13 +1225,11 @@ function focusUserSearch() {
 }
 
 function updateOnboardingState() {
-    // Admins can always see posts, bypass new user guide
     const isAdmin = isAdminRole();
+    renderPosts();
     if (!isAdmin && isNewUser && currentView === 'home') {
         renderNewUserGuide();
-        return;
     }
-    renderPosts();
 }
 
 function renderPostMedia(post) {
@@ -1181,22 +1279,26 @@ function renderPostMedia(post) {
 
 function openMediaViewer(src, isVideo = false) {
     if (!src) return;
+    const modalEl = document.getElementById('mediaViewerModal');
+    const imageEl = document.getElementById('mediaViewerImageEl');
+    const videoEl = document.getElementById('mediaViewerVideoEl');
+    if (!modalEl || !imageEl || !videoEl) return;
+
     if (isVideo) {
-        Swal.fire({
-            html: `<video src="${src}" controls autoplay playsinline style="max-width:100%;max-height:70vh;"></video>`,
-            showConfirmButton: false,
-            showCloseButton: true,
-            background: '#0f172a'
-        });
-        return;
+        imageEl.classList.add('d-none');
+        imageEl.removeAttribute('src');
+        videoEl.classList.remove('d-none');
+        videoEl.src = src;
+    } else {
+        videoEl.pause();
+        videoEl.classList.add('d-none');
+        videoEl.removeAttribute('src');
+        imageEl.classList.remove('d-none');
+        imageEl.src = src;
     }
-    Swal.fire({
-        imageUrl: src,
-        imageAlt: 'Media',
-        showConfirmButton: false,
-        showCloseButton: true,
-        background: '#0f172a',
-    });
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
 }
 
 function openCoverViewer() {

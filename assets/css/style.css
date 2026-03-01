@@ -785,9 +785,34 @@ button[type="submit"].btn-login-custom:active {
 }
 
 .main-container {
-    padding: 30px 20px;
-    max-width: 935px;
+    padding: 30px 24px;
+    max-width: 1750px;
     margin: 0 auto;
+}
+
+/* Keep MyDay, Create Post and Timeline exactly same width and centered */
+.feed-width {
+    width: 100%;
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 992px) {
+    .sidebar-left {
+        flex: 0 0 300px;
+        width: 300px;
+        max-width: 300px;
+    }
+    .main-content {
+        min-width: 0;
+        /* Move feed visually toward screen center without overlapping sidebar. */
+        padding-right: clamp(40px, 10vw, 180px);
+    }
+}
+
+.profile-action-row .btn-profile-action {
+    white-space: nowrap;
 }
 
 .view-header {
@@ -805,6 +830,79 @@ button[type="submit"].btn-login-custom:active {
     border-radius: 4px;
 }
 
+.profile-view-header {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+}
+
+.profile-view-cover {
+    height: 240px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.profile-view-cover.no-cover {
+    background: linear-gradient(135deg, #c7d2fe 0%, #bfdbfe 50%, #dbeafe 100%);
+}
+
+.profile-view-body {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 56px 16px 16px 16px;
+}
+
+.profile-view-avatar {
+    position: absolute;
+    top: -42px;
+    left: 16px;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    background: #ffffff;
+}
+
+.profile-view-meta {
+    min-width: 0;
+    margin-left: 104px;
+}
+
+.profile-view-actions {
+    margin-left: auto;
+}
+
+.profile-follow-btn {
+    background: #0a1628 !important;
+    border-color: #0a1628 !important;
+    color: #ffffff !important;
+}
+
+.profile-follow-btn:hover {
+    background: #0d1f3a !important;
+    border-color: #0d1f3a !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+    .profile-view-cover {
+        height: 180px;
+    }
+    .profile-view-avatar {
+        width: 80px;
+        height: 80px;
+        top: -36px;
+    }
+    .profile-view-meta {
+        margin-left: 92px;
+    }
+}
+
 .view-title {
     font-size: 16px;
     font-weight: 700;
@@ -814,6 +912,11 @@ button[type="submit"].btn-login-custom:active {
 .view-subtitle {
     font-size: 13px;
     color: #8e8e8e;
+}
+
+.profile-view-bio {
+    margin-top: 4px;
+    line-height: 1.35;
 }
 
 /* Sidebars: keep visible and scrollable instead of forcing zoom-out */
@@ -1830,6 +1933,7 @@ button#viewAnnouncementsBtn.action-btn i {
     }
     
     .main-content {
+        padding-right: 0;
         max-width: 100%;
     }
 }
