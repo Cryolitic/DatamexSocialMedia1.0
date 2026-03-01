@@ -96,10 +96,10 @@
         </ul>
     </div>
 
-    <div class="container-fluid main-container">
-        <div class="row">
+    <div class="container-xxl main-container">
+        <div class="row g-3 g-lg-4">
             <!-- Left Sidebar - Profile Section -->
-            <aside class="col-lg-3 sidebar-left">
+            <aside class="col-12 col-lg-auto sidebar-left mb-3 mb-lg-0">
                 <div class="profile-card">
                     <div class="profile-cover" id="profileCover" onclick="openCoverViewer()"></div>
                     <div class="profile-info">
@@ -113,12 +113,14 @@
                                 <span class="btn-note-like" id="profileNoteLikeBtn" style="display:none;" title="Like"><i class="far fa-heart"></i> <span id="profileNoteLikeCount">0</span></span>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-profile-action mt-2" id="changeAvatarBtn">
-                            <i class="fas fa-camera"></i> Change Photo
-                        </button>
-                        <button type="button" class="btn btn-sm btn-profile-action mt-2" id="editProfileBtn">
-                            <i class="fas fa-pen"></i> Edit Profile
-                        </button>
+                        <div class="d-flex justify-content-center gap-2 mt-2 profile-action-row">
+                            <button type="button" class="btn btn-sm btn-profile-action" id="changeAvatarBtn">
+                                <i class="fas fa-camera"></i> Change Photo
+                            </button>
+                            <button type="button" class="btn btn-sm btn-profile-action" id="editProfileBtn">
+                                <i class="fas fa-pen"></i> Edit Profile
+                            </button>
+                        </div>
                         <h4 class="profile-name clickable-profile" id="profileName" title="View Story or Profile">John Doe</h4>
                         <p class="profile-username" id="profileUsername">@johndoe</p>
                         <div class="profile-stats">
@@ -140,10 +142,10 @@
             </aside>
 
             <!-- Main Content - Timeline -->
-            <main class="col-lg-6 main-content">
-                <div id="viewHeader" class="view-header"></div>
+            <main class="col-12 col-lg main-content">
+                <div id="viewHeader" class="view-header feed-width"></div>
                 <!-- MyDay / Stories (24h) -->
-                <div class="stories-row" id="storiesRow">
+                <div class="stories-row feed-width" id="storiesRow">
                     <div class="stories-inner">
                         <div class="story-add-circle" id="addStoryBtn" title="Add to My Day">
                             <i class="fas fa-plus"></i>
@@ -156,7 +158,7 @@
                 
                 
                 <!-- Create Post Section -->
-                <div class="create-post-card">
+                <div class="create-post-card feed-width">
                     <div class="create-post-header">
                         <img src="assets/images/default-avatar.png" alt="User" class="create-post-avatar avatar-zoom" onclick="openMediaViewer(this.src)" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
                         <input type="text" id="postContent" class="create-post-input" placeholder="What's on your mind?">
@@ -183,7 +185,7 @@
                                 <span>Announcement</span>
                             </label>
                         </div>
-                        <button class="action-btn" id="viewAnnouncementsBtn" title="View posted announcements">
+                        <button class="action-btn fs-6 fs-md-5 fw-semibold px-3 px-md-4 py-2" id="viewAnnouncementsBtn" title="View posted announcements">
                             <i class="fas fa-bullhorn"></i>
                             <span>Announcements</span>
                         </button>
@@ -196,22 +198,13 @@
                 </div>
 
                 <!-- Timeline Posts -->
-                <div id="timelinePosts" class="timeline-posts">
+                <div id="timelinePosts" class="timeline-posts feed-width">
                     <!-- Posts will be loaded here via AJAX -->
                 </div>
             </main>
 
-            <!-- Right Sidebar -->
-            <aside class="col-lg-3 sidebar-right">
-                <div class="widget-card">
-                    <h5 class="widget-title">Trending</h5>
-                    <ul class="trending-list" id="trendingList">
-                        <li>#Technology</li>
-                        <li>#SocialMedia</li>
-                        <li>#Community</li>
-                    </ul>
-                </div>
-            </aside>
+            
+            
         </div>
     </div>
 
@@ -313,6 +306,21 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0" id="storyViewersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media viewer modal (image/video) -->
+    <div class="modal fade" id="mediaViewerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-dark border-0">
+                <div class="modal-header border-0 py-2">
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body d-flex justify-content-center align-items-center p-2 p-md-3">
+                    <img id="mediaViewerImageEl" src="" alt="Media" class="img-fluid d-none" style="max-height:88vh;">
+                    <video id="mediaViewerVideoEl" class="w-100 d-none" controls autoplay playsinline style="max-height:88vh;"></video>
+                </div>
             </div>
         </div>
     </div>

@@ -15,7 +15,7 @@ if (!$userId) {
 
 try {
     $pdo = db();
-    $uStmt = $pdo->prepare('SELECT id, username, name, email, avatar, bio, cover_photo FROM users WHERE id = :id LIMIT 1');
+    $uStmt = $pdo->prepare('SELECT id, username, name, email, avatar, bio, cover_photo, new_user_guide_dismissed FROM users WHERE id = :id LIMIT 1');
     $uStmt->execute(['id' => $userId]);
     $u = $uStmt->fetch();
     if (!$u) {
@@ -88,6 +88,7 @@ $isFollower = false;
             'isFollower' => $isFollower,
             'latestNote' => $latestNote,
             'hasStory' => $hasStory,
+            'new_user_guide_dismissed' => (bool)($u['new_user_guide_dismissed'] ?? 0),
         ]
     ]);
 } catch (Exception $e) {

@@ -63,6 +63,7 @@ function migrate(PDO $pdo): void {
             lock_until DATETIME NULL,
             banned_until DATETIME NULL,
             ban_reason TEXT,
+            new_user_guide_dismissed TINYINT(1) DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
@@ -108,6 +109,9 @@ function migrate(PDO $pdo): void {
     } catch (PDOException $e) {}
     try {
         $pdo->exec("ALTER TABLE users ADD COLUMN cover_photo VARCHAR(255)");
+    } catch (PDOException $e) {}
+    try {
+        $pdo->exec("ALTER TABLE users ADD COLUMN new_user_guide_dismissed TINYINT(1) DEFAULT 0");
     } catch (PDOException $e) {}
 
     // Follows table
