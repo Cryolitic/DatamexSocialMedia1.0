@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 28, 2026 at 11:52 PM
+-- Generation Time: Mar 02, 2026 at 12:16 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -80,7 +80,9 @@ INSERT INTO `admin_logs` (`id`, `admin_id`, `action`, `details`, `created_at`) V
 (15, 9, 'Warn User', 'Warned user #8: This bad', '2026-02-21 21:38:41'),
 (16, 9, 'Ban User', 'Banned user #12 for 10 minutes: ewwa', '2026-02-21 22:10:09'),
 (17, 9, 'Delete User', 'Deleted user #14 (1234)', '2026-02-21 22:10:27'),
-(18, 15, 'Change User Role', 'Changed user #6 (123123123) role from faculty to student', '2026-02-28 22:29:11');
+(18, 15, 'Change User Role', 'Changed user #6 (123123123) role from faculty to student', '2026-02-28 22:29:11'),
+(19, 15, 'Delete User', 'Deleted user #12 (123124)', '2026-03-01 09:03:53'),
+(20, 15, 'Delete User', 'Deleted user #17 (13214)', '2026-03-01 09:37:39');
 
 -- --------------------------------------------------------
 
@@ -108,7 +110,9 @@ INSERT INTO `comments` (`id`, `post_id`, `user_id`, `content`, `created_at`) VAL
 (8, 58, 9, 'How any comments', '2026-02-28 02:39:50'),
 (9, 58, 9, 'awsedawd', '2026-02-28 02:39:53'),
 (10, 58, 9, 'For real for real', '2026-02-28 02:40:01'),
-(11, 58, 9, 'craxy', '2026-02-28 02:40:08');
+(11, 58, 9, 'craxy', '2026-02-28 02:40:08'),
+(12, 68, 18, 'O_O', '2026-03-02 06:18:49'),
+(13, 79, 8, 'as', '2026-03-02 11:13:01');
 
 -- --------------------------------------------------------
 
@@ -155,9 +159,7 @@ INSERT INTO `follows` (`follower_id`, `followed_id`, `created_at`) VALUES
 (4, 2, '2026-01-21 14:57:41'),
 (4, 3, '2026-01-21 14:43:22'),
 (8, 2, '2026-02-21 16:39:22'),
-(8, 12, '2026-02-21 18:28:00'),
-(12, 8, '2026-02-21 18:26:53'),
-(12, 9, '2026-02-21 17:41:22'),
+(8, 18, '2026-03-02 08:37:58'),
 (13, 8, '2026-02-26 17:44:48'),
 (13, 9, '2026-02-21 21:56:07');
 
@@ -191,7 +193,8 @@ INSERT INTO `likes` (`id`, `post_id`, `user_id`, `created_at`) VALUES
 (16, 58, 13, '2026-02-26 17:48:20'),
 (17, 56, 13, '2026-02-26 17:48:22'),
 (18, 55, 13, '2026-02-26 17:48:23'),
-(20, 74, 8, '2026-02-28 01:19:05');
+(20, 74, 8, '2026-02-28 01:19:05'),
+(21, 53, 18, '2026-03-02 06:18:38');
 
 -- --------------------------------------------------------
 
@@ -241,13 +244,6 @@ CREATE TABLE `note_likes` (
   `user_id` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `note_likes`
---
-
-INSERT INTO `note_likes` (`id`, `note_id`, `user_id`, `created_at`) VALUES
-(1, 6, 12, '2026-02-21 17:31:17');
 
 -- --------------------------------------------------------
 
@@ -307,27 +303,18 @@ INSERT INTO `notifications` (`id`, `user_id`, `from_user_id`, `post_id`, `type`,
 (67, 9, 8, 57, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: You shouldn\'t be seeing this', 0, '2026-02-21 17:02:09', NULL),
 (68, 1, 8, 58, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: Only my followers can see this', 0, '2026-02-21 17:02:42', NULL),
 (69, 9, 8, 58, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: Only my followers can see this', 1, '2026-02-21 17:02:42', NULL),
-(70, 1, 8, 59, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: What is this? fof?', 0, '2026-02-21 17:02:56', NULL),
-(71, 9, 8, 59, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: What is this? fof?', 0, '2026-02-21 17:02:56', NULL),
-(72, 2, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:22:07', NULL),
-(73, 2, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:30:29', NULL),
-(74, 8, 12, NULL, 'story_like', 'Ben liked your story.', 0, '2026-02-21 17:31:20', NULL),
-(75, 8, 12, NULL, 'story_like', 'Ben liked your story.', 1, '2026-02-21 17:31:22', NULL),
-(76, 8, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:36:41', NULL),
-(77, 9, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:41:22', NULL),
-(80, 1, 12, 61, 'admin_post', 'Ben posted: Pogi ko talaga', 0, '2026-02-21 17:51:23', NULL),
-(81, 9, 12, 61, 'admin_post', 'Ben posted: Pogi ko talaga', 0, '2026-02-21 17:51:23', NULL),
-(82, 1, 12, 62, 'admin_post', 'Ben posted: agalat ok ogiP', 0, '2026-02-21 17:51:45', NULL),
-(83, 9, 12, 62, 'admin_post', 'Ben posted: agalat ok ogiP', 0, '2026-02-21 17:51:45', NULL),
-(86, 1, 12, 64, 'admin_post', 'Ben posted: dfgvsfd', 0, '2026-02-21 18:10:13', NULL),
-(87, 9, 12, 64, 'admin_post', 'Ben posted: dfgvsfd', 0, '2026-02-21 18:10:13', NULL),
-(88, 8, 12, NULL, 'story_like', 'Ben liked your story.', 1, '2026-02-21 18:18:07', NULL),
-(89, 8, 12, NULL, 'follow', 'Ben started following you.', 1, '2026-02-21 18:24:10', NULL),
-(90, 8, 12, NULL, 'follow', 'Ben started following you.', 1, '2026-02-21 18:24:12', NULL),
-(91, 8, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:24:15', NULL),
-(92, 8, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:24:31', NULL),
-(93, 8, 12, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:26:53', NULL),
-(94, 12, 8, NULL, 'follow', 'Mikaelle Angelo A. Gabriel started following you.', 0, '2026-02-21 18:28:00', NULL),
+(72, 2, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:22:07', NULL),
+(73, 2, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:30:29', NULL),
+(74, 8, NULL, NULL, 'story_like', 'Ben liked your story.', 0, '2026-02-21 17:31:20', NULL),
+(75, 8, NULL, NULL, 'story_like', 'Ben liked your story.', 1, '2026-02-21 17:31:22', NULL),
+(76, 8, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:36:41', NULL),
+(77, 9, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 17:41:22', NULL),
+(88, 8, NULL, NULL, 'story_like', 'Ben liked your story.', 1, '2026-02-21 18:18:07', NULL),
+(89, 8, NULL, NULL, 'follow', 'Ben started following you.', 1, '2026-02-21 18:24:10', NULL),
+(90, 8, NULL, NULL, 'follow', 'Ben started following you.', 1, '2026-02-21 18:24:12', NULL),
+(91, 8, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:24:15', NULL),
+(92, 8, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:24:31', NULL),
+(93, 8, NULL, NULL, 'follow', 'Ben started following you.', 0, '2026-02-21 18:26:53', NULL),
 (95, 8, 9, NULL, 'warning', 'Your account has been locked due to sensitive and not reliable content. Reason: Wow', 0, '2026-02-21 21:37:59', NULL),
 (96, 8, 9, NULL, 'warning', 'You received a warning from Gabriel. Reason: This bad', 0, '2026-02-21 21:38:41', NULL),
 (97, 9, 13, NULL, 'follow', 'Nobara started following you.', 0, '2026-02-21 21:56:07', NULL),
@@ -336,14 +323,12 @@ INSERT INTO `notifications` (`id`, `user_id`, `from_user_id`, `post_id`, `type`,
 (113, 8, NULL, NULL, 'story_like', 'Mikaelle Angelo Gab liked your story.', 0, '2026-02-21 22:07:37', NULL),
 (114, 8, NULL, 58, 'like', 'Mikaelle Angelo Gab liked your post', 0, '2026-02-21 22:07:46', NULL),
 (115, 8, NULL, NULL, 'follow', 'Mikaelle Angelo Gab started following you.', 1, '2026-02-21 22:07:56', NULL),
-(116, 12, 9, NULL, 'story', 'Gabriel posted a story.', 0, '2026-02-21 22:11:20', NULL),
 (117, 13, 9, NULL, 'story', 'Gabriel posted a story.', 0, '2026-02-21 22:11:20', NULL),
 (118, 8, 13, NULL, 'follow', 'Nobara started following you.', 0, '2026-02-26 17:44:48', NULL),
 (119, 8, 13, 58, 'like', 'Nobara liked your post', 0, '2026-02-26 17:48:20', NULL),
 (120, 8, 13, 56, 'like', 'Nobara liked your post', 0, '2026-02-26 17:48:22', NULL),
 (121, 8, 13, 55, 'like', 'Nobara liked your post', 0, '2026-02-26 17:48:23', NULL),
 (122, 8, 13, 58, 'comment', 'Nobara commented on your post', 0, '2026-02-26 17:48:33', NULL),
-(131, 12, 8, NULL, 'story', 'Mikaelle Angelo A. Gabriel posted a story.', 0, '2026-02-27 23:34:29', NULL),
 (132, 13, 8, NULL, 'story', 'Mikaelle Angelo A. Gabriel posted a story.', 0, '2026-02-27 23:34:29', NULL),
 (133, 1, 8, 74, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: Test Cloudinary', 0, '2026-02-28 01:18:55', NULL),
 (134, 9, 8, 74, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: Test Cloudinary', 0, '2026-02-28 01:18:55', NULL),
@@ -352,7 +337,42 @@ INSERT INTO `notifications` (`id`, `user_id`, `from_user_id`, `post_id`, `type`,
 (137, 8, 9, 58, 'comment', 'Gabriel commented on your post', 0, '2026-02-28 02:39:50', NULL),
 (138, 8, 9, 58, 'comment', 'Gabriel commented on your post', 0, '2026-02-28 02:39:53', NULL),
 (139, 8, 9, 58, 'comment', 'Gabriel commented on your post', 0, '2026-02-28 02:40:01', NULL),
-(140, 8, 9, 58, 'comment', 'Gabriel commented on your post', 0, '2026-02-28 02:40:08', NULL);
+(140, 8, 9, 58, 'comment', 'Gabriel commented on your post', 0, '2026-02-28 02:40:08', NULL),
+(144, 8, 18, NULL, 'follow', 'Ben started following you.', 1, '2026-03-01 11:58:07', NULL),
+(145, 1, 18, 78, 'admin_post', 'Ben posted: ssaD', 0, '2026-03-01 15:20:19', NULL),
+(146, 9, 18, 78, 'admin_post', 'Ben posted: ssaD', 0, '2026-03-01 15:20:19', NULL),
+(147, 15, 18, 78, 'admin_post', 'Ben posted: ssaD', 0, '2026-03-01 15:20:19', NULL),
+(148, 1, 18, 79, 'admin_post', 'Ben posted: ', 0, '2026-03-02 06:17:20', NULL),
+(149, 9, 18, 79, 'admin_post', 'Ben posted: ', 0, '2026-03-02 06:17:20', NULL),
+(150, 15, 18, 79, 'admin_post', 'Ben posted: ', 0, '2026-03-02 06:17:20', NULL),
+(151, 9, 18, 53, 'like', 'Ben liked your post', 0, '2026-03-02 06:18:38', NULL),
+(152, 9, 18, 68, 'comment', 'Ben commented on your post', 0, '2026-03-02 06:18:49', NULL),
+(153, 1, 18, 68, 'admin_comment', 'Ben commented: O_O', 0, '2026-03-02 06:18:49', NULL),
+(154, 9, 18, 68, 'admin_comment', 'Ben commented: O_O', 0, '2026-03-02 06:18:49', NULL),
+(155, 15, 18, 68, 'admin_comment', 'Ben commented: O_O', 0, '2026-03-02 06:18:49', NULL),
+(156, 1, 8, 80, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 08:37:33', NULL),
+(157, 9, 8, 80, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 08:37:33', NULL),
+(158, 15, 8, 80, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 08:37:33', NULL),
+(159, 18, 8, NULL, 'follow', 'Mikaelle Angelo A. Gabriel started following you.', 0, '2026-03-02 08:37:58', NULL),
+(160, 13, 8, NULL, 'story', 'Mikaelle Angelo A. Gabriel posted a story.', 0, '2026-03-02 08:58:47', NULL),
+(161, 1, 8, 81, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 09:06:05', NULL),
+(162, 9, 8, 81, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 09:06:05', NULL),
+(163, 15, 8, 81, 'admin_post', 'Mikaelle Angelo A. Gabriel posted: ', 0, '2026-03-02 09:06:05', NULL),
+(164, 2, 8, 2, 'share', 'Mikaelle Angelo A. Gabriel shared your post', 0, '2026-03-02 10:27:33', NULL),
+(165, 1, 8, 2, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 10:27:33', NULL),
+(166, 9, 8, 2, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 10:27:33', NULL),
+(167, 15, 8, 2, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 10:27:33', NULL),
+(168, 18, 8, 79, 'share', 'Mikaelle Angelo A. Gabriel shared your post', 0, '2026-03-02 11:00:14', NULL),
+(169, 1, 8, 79, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:14', NULL),
+(170, 9, 8, 79, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:14', NULL),
+(171, 15, 8, 79, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:14', NULL),
+(172, 1, 8, 83, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:34', NULL),
+(173, 9, 8, 83, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:34', NULL),
+(174, 15, 8, 83, 'admin_share', 'Mikaelle Angelo A. Gabriel shared a post', 0, '2026-03-02 11:00:34', NULL),
+(175, 18, 8, 79, 'comment', 'Mikaelle Angelo A. Gabriel commented on your post', 0, '2026-03-02 11:13:01', NULL),
+(176, 1, 8, 79, 'admin_comment', 'Mikaelle Angelo A. Gabriel commented: as', 0, '2026-03-02 11:13:01', NULL),
+(177, 9, 8, 79, 'admin_comment', 'Mikaelle Angelo A. Gabriel commented: as', 0, '2026-03-02 11:13:01', NULL),
+(178, 15, 8, 79, 'admin_comment', 'Mikaelle Angelo A. Gabriel commented: as', 0, '2026-03-02 11:13:01', NULL);
 
 -- --------------------------------------------------------
 
@@ -373,7 +393,7 @@ CREATE TABLE `password_resets` (
 --
 
 INSERT INTO `password_resets` (`id`, `user_id`, `token`, `expires_at`, `created_at`) VALUES
-(7, 8, '013efafa12ae06dc8a0b0169adf33574', '2026-02-28 22:26:26', '2026-02-28 14:06:26');
+(8, 8, '74495171094181f7ba06d5302cba44ac', '2026-03-02 14:43:58', '2026-03-02 06:33:58');
 
 -- --------------------------------------------------------
 
@@ -420,15 +440,18 @@ INSERT INTO `posts` (`id`, `user_id`, `content`, `media_type`, `privacy`, `refer
 (56, 8, 'Hey Loook at me!', 'text', 'public', NULL, '2026-02-21 17:01:49', NULL, NULL, NULL, 'post', NULL),
 (57, 8, 'You shouldn\'t be seeing this', 'text', 'only_me', NULL, '2026-02-21 17:02:09', NULL, NULL, NULL, 'post', NULL),
 (58, 8, 'Only my followers can see this', 'text', 'followers', NULL, '2026-02-21 17:02:42', NULL, NULL, NULL, 'post', NULL),
-(59, 8, 'What is this? fof?', 'text', 'friends_of_friends', NULL, '2026-02-21 17:02:56', NULL, NULL, NULL, 'post', NULL),
-(61, 12, 'Pogi ko talaga', 'text', 'public', NULL, '2026-02-21 17:51:23', NULL, NULL, NULL, 'post', NULL),
-(62, 12, 'agalat ok ogiP', 'text', 'public', NULL, '2026-02-21 17:51:45', NULL, NULL, NULL, 'post', NULL),
-(64, 12, 'dfgvsfd', 'text', 'public', NULL, '2026-02-21 18:10:13', NULL, NULL, NULL, 'post', NULL),
 (68, 9, 'Senn', 'image', 'public', NULL, '2026-02-21 22:09:30', NULL, NULL, '[\"https://res.cloudinary.com/dmkoc4lis/image/upload/v1772129041/post_699a2d1a60b83_q77vi6.png\"]', 'announcement', 'approved'),
 (69, 9, 'Heyyyyy', 'text', 'public', NULL, '2026-02-26 17:01:19', NULL, NULL, NULL, 'announcement', 'approved'),
-(74, 8, 'Test Cloudinary', 'image', 'public', NULL, '2026-02-28 01:18:55', NULL, NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772241535\\/uploads\\/posts\\/abguv3rjjajovbbdl1jj.jpg\",\"public_id\":\"uploads\\/posts\\/abguv3rjjajovbbdl1jj\",\"resource_type\":\"image\"}]', 'post', NULL),
+(74, 8, 'Test Cloudinary Edit as well', 'image', 'public', NULL, '2026-02-28 01:18:55', '2026-03-02 08:09:41', NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772241535\\/uploads\\/posts\\/abguv3rjjajovbbdl1jj.jpg\",\"public_id\":\"uploads\\/posts\\/abguv3rjjajovbbdl1jj\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438955\\/uploads\\/posts\\/gm0ns1evoezluchfht39.png\",\"public_id\":\"uploads\\/posts\\/gm0ns1evoezluchfht39\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438956\\/uploads\\/posts\\/sjcg6safgp0xxetamtsf.png\",\"public_id\":\"uploads\\/posts\\/sjcg6safgp0xxetamtsf\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438957\\/uploads\\/posts\\/x1n3ifstbspnsyaflrag.png\",\"public_id\":\"uploads\\/posts\\/x1n3ifstbspnsyaflrag\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438963\\/uploads\\/posts\\/itealftes8vmbrh41nji.jpg\",\"public_id\":\"uploads\\/posts\\/itealftes8vmbrh41nji\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438965\\/uploads\\/posts\\/ssfhnjvyitc0zeh4odqe.jpg\",\"public_id\":\"uploads\\/posts\\/ssfhnjvyitc0zeh4odqe\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438966\\/uploads\\/posts\\/mnkhbxapsshwmj2cgz91.jpg\",\"public_id\":\"uploads\\/posts\\/mnkhbxapsshwmj2cgz91\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438971\\/uploads\\/posts\\/ynd84gcohaeoab7t1by8.png\",\"public_id\":\"uploads\\/posts\\/ynd84gcohaeoab7t1by8\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438972\\/uploads\\/posts\\/ltmolo42mifoutmhu9cl.png\",\"public_id\":\"uploads\\/posts\\/ltmolo42mifoutmhu9cl\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438974\\/uploads\\/posts\\/q4yzlxfbsbepwe025ucq.jpg\",\"public_id\":\"uploads\\/posts\\/q4yzlxfbsbepwe025ucq\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438974\\/uploads\\/posts\\/a2urshxvnrrwwpqu8gcd.png\",\"public_id\":\"uploads\\/posts\\/a2urshxvnrrwwpqu8gcd\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438975\\/uploads\\/posts\\/kf2qsybj7kma8fxuuksu.png\",\"public_id\":\"uploads\\/posts\\/kf2qsybj7kma8fxuuksu\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772438980\\/uploads\\/posts\\/kcxfq10y8ji6eoammm5s.png\",\"public_id\":\"uploads\\/posts\\/kcxfq10y8ji6eoammm5s\",\"resource_type\":\"image\"}]', 'post', NULL),
 (75, 9, '', 'video', 'public', NULL, '2026-02-28 15:08:32', NULL, NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/video\\/upload\\/v1772291311\\/uploads\\/posts\\/pdrnjesirp1tydsk5bzk.mp4\",\"public_id\":\"uploads\\/posts\\/pdrnjesirp1tydsk5bzk\",\"resource_type\":\"video\"}]', 'post', NULL),
-(76, 13, 'Undead', 'text', 'public', NULL, '2026-02-28 21:29:41', NULL, NULL, NULL, 'post', NULL);
+(76, 13, 'Undead', 'text', 'public', NULL, '2026-02-28 21:29:41', NULL, NULL, NULL, 'post', NULL),
+(78, 18, 'ssaD', 'text', 'public', NULL, '2026-03-01 15:20:19', NULL, NULL, NULL, 'post', NULL),
+(79, 18, '', 'image', 'public', NULL, '2026-03-02 06:17:20', NULL, NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772432239\\/uploads\\/posts\\/zsdnhwootixn1oguf9gz.jpg\",\"public_id\":\"uploads\\/posts\\/zsdnhwootixn1oguf9gz\",\"resource_type\":\"image\"}]', 'post', NULL),
+(80, 8, '', 'image', 'public', NULL, '2026-03-02 08:37:33', NULL, NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772440651\\/uploads\\/posts\\/ytopra6lyjzalpkyrdcu.png\",\"public_id\":\"uploads\\/posts\\/ytopra6lyjzalpkyrdcu\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772440652\\/uploads\\/posts\\/cui2xppdgeu4yla4uilm.jpg\",\"public_id\":\"uploads\\/posts\\/cui2xppdgeu4yla4uilm\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772440653\\/uploads\\/posts\\/irkcpxqpjfca967toshr.jpg\",\"public_id\":\"uploads\\/posts\\/irkcpxqpjfca967toshr\",\"resource_type\":\"image\"}]', 'post', NULL),
+(81, 8, '', 'video', 'public', NULL, '2026-03-02 09:06:05', '2026-03-02 09:28:16', NULL, '[{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/video\\/upload\\/v1772442356\\/uploads\\/posts\\/soqp9dm8gxfztueycb4n.mp4\",\"public_id\":\"uploads\\/posts\\/soqp9dm8gxfztueycb4n\",\"resource_type\":\"video\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/video\\/upload\\/v1772442364\\/uploads\\/posts\\/m7itymplmo2huyqbgzfw.mp4\",\"public_id\":\"uploads\\/posts\\/m7itymplmo2huyqbgzfw\",\"resource_type\":\"video\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/video\\/upload\\/v1772443276\\/uploads\\/posts\\/mw6kzzxfmjnvqdvysdnw.mp4\",\"public_id\":\"uploads\\/posts\\/mw6kzzxfmjnvqdvysdnw\",\"resource_type\":\"video\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772443278\\/uploads\\/posts\\/xmltqmb5zjfdv5fnrln2.jpg\",\"public_id\":\"uploads\\/posts\\/xmltqmb5zjfdv5fnrln2\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772443658\\/uploads\\/posts\\/nooyrr8v6xlr9tnguybh.png\",\"public_id\":\"uploads\\/posts\\/nooyrr8v6xlr9tnguybh\",\"resource_type\":\"image\"},{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/video\\/upload\\/v1772443692\\/uploads\\/posts\\/p28vecfl2ct9i9oury3k.mp4\",\"public_id\":\"uploads\\/posts\\/p28vecfl2ct9i9oury3k\",\"resource_type\":\"video\"}]', 'post', NULL),
+(82, 8, '', 'image', 'public', 2, '2026-03-02 10:27:33', NULL, NULL, '[\"https://res.cloudinary.com/dmkoc4lis/image/upload/v1772129042/post_6970d9e1cdb72_mku51y.jpg\"]', 'post', NULL),
+(83, 8, '', 'text', 'followers', 79, '2026-03-02 11:00:14', NULL, NULL, NULL, 'post', NULL),
+(84, 8, '', 'text', 'public', 83, '2026-03-02 11:00:34', NULL, NULL, NULL, 'post', NULL);
 
 -- --------------------------------------------------------
 
@@ -470,7 +493,8 @@ INSERT INTO `stories` (`id`, `user_id`, `media_type`, `media_url`, `created_at`)
 (3, 8, 'image', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134277/story_6999d2225b40d_alkitm.png', '2026-02-21 15:41:22'),
 (4, 8, 'image', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134275/story_6999d232ad6a5_w6mgwg.jpg', '2026-02-21 15:41:38'),
 (5, 9, 'image', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134274/story_699a2d88709cd_qvbi4x.png', '2026-02-21 22:11:20'),
-(6, 8, 'image', '{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772235268\\/uploads\\/stories\\/kz0awm8oul0xt4oovdkw.png\",\"public_id\":\"uploads\\/stories\\/kz0awm8oul0xt4oovdkw\",\"resource_type\":\"image\"}', '2026-02-27 23:34:29');
+(6, 8, 'image', '{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772235268\\/uploads\\/stories\\/kz0awm8oul0xt4oovdkw.png\",\"public_id\":\"uploads\\/stories\\/kz0awm8oul0xt4oovdkw\",\"resource_type\":\"image\"}', '2026-02-27 23:34:29'),
+(7, 8, 'image', '{\"url\":\"https:\\/\\/res.cloudinary.com\\/dmkoc4lis\\/image\\/upload\\/v1772441926\\/uploads\\/stories\\/rma8ngvg8mgmp0slts7m.png\",\"public_id\":\"uploads\\/stories\\/rma8ngvg8mgmp0slts7m\",\"resource_type\":\"image\"}', '2026-03-02 08:58:47');
 
 -- --------------------------------------------------------
 
@@ -494,8 +518,6 @@ INSERT INTO `story_likes` (`id`, `story_id`, `user_id`, `created_at`) VALUES
 (2, 2, 6, '2026-02-01 15:39:24'),
 (4, 1, 4, '2026-02-01 15:43:47'),
 (5, 2, 4, '2026-02-01 15:43:51'),
-(8, 4, 12, '2026-02-21 17:31:22'),
-(9, 3, 12, '2026-02-21 18:18:07'),
 (11, 4, 8, '2026-02-21 18:28:50'),
 (14, 5, 9, '2026-02-21 22:11:24'),
 (15, 6, 8, '2026-02-27 23:34:36');
@@ -526,10 +548,9 @@ INSERT INTO `story_views` (`id`, `story_id`, `viewer_id`, `created_at`) VALUES
 (16, 2, 4, '2026-02-01 15:43:50'),
 (34, 3, 8, '2026-02-21 15:41:24'),
 (37, 4, 8, '2026-02-21 15:41:42'),
-(40, 3, 12, '2026-02-21 17:31:19'),
-(41, 4, 12, '2026-02-21 17:31:21'),
 (60, 5, 9, '2026-02-21 22:11:22'),
-(61, 6, 8, '2026-02-27 23:34:32');
+(61, 6, 8, '2026-02-27 23:34:32'),
+(63, 7, 8, '2026-03-02 08:58:55');
 
 -- --------------------------------------------------------
 
@@ -556,26 +577,27 @@ CREATE TABLE `users` (
   `account_type` enum('student','faculty','admin') DEFAULT 'student',
   `warning_reasons` text DEFAULT NULL,
   `banned_until` datetime DEFAULT NULL,
-  `ban_reason` text DEFAULT NULL
+  `ban_reason` text DEFAULT NULL,
+  `new_user_guide_dismissed` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `name`, `bio`, `avatar`, `avatar_id`, `status`, `warnings`, `created_at`, `failed_login_attempts`, `lock_level`, `lock_until`, `cover_photo`, `account_type`, `warning_reasons`, `banned_until`, `ban_reason`) VALUES
-(1, 'admin', 'admin@localhost', '$2y$10$cjH8BQCmB5rNlKAtaQQuhO.4oWoKjGgZsLx1wAqTgzaX9m0kDOS8u', 'Datamex Admin', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134168/avatar_6970e29df232e_oyccuf.jpg', '{\"public_id\":\"avatar_6970e29df232e_oyccuf\":\"image\"}', 'active', 0, '2026-01-21 12:55:42', 0, 0, NULL, 'uploads/covers/cover_6970e2bad0fb1.jpg', 'admin', NULL, NULL, NULL),
-(2, '12345678', 'riveroardrewangeles@gmail.com', '$2y$10$RFFNXsLPvyvQcve28Qw0C.F0PpEIVf2/3OEtriZ1BXeAzurzRY7CK', 'Ardrew Castillo Angeles', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134167/avatar_6970d5f70dbde_jpganz.jpg', '', '', 6, '2026-01-21 13:02:43', 0, 0, NULL, 'uploads/covers/cover_6970d9fa75c60.jpg', 'student', '[{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 06:00:06\"},{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 06:14:19\"},{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 07:02:32\"},{\"reason\":\"tanginamo\",\"admin_id\":1,\"timestamp\":\"2026-01-28 01:05:11\"},{\"reason\":\"nag ban eh\",\"admin_id\":1,\"timestamp\":\"2026-01-28 02:19:21\"},{\"reason\":\"nagmura ka kupal\",\"admin_id\":1,\"timestamp\":\"2026-02-02 03:39:53\"}]', '2026-02-21 17:47:19', 'hey'),
-(3, '123456', 'felixardoangeles1963@gmail.com', '$2y$10$am4W3Y9evP5EsRkQMpo9n.wJRDK5O5ZH6nWSJfAWPk/M1v/DVRUyW', 'felixardoangeles', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-21 14:33:20', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL),
-(4, '1233', 'zedrix@gmail.com', '$2y$10$Rgnr/x5Rp47EhzVxWmdWw.JQgCCqDJ59Iv/EPtcNVZcYgQVvQQaQS', 'Aira Mae Sueno', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134168/avatar_6970e7a6f2f1c_dspyri.jpg', '', 'active', 0, '2026-01-21 14:40:05', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL),
-(5, '1234567', 'peviwix223@ncien.com', '$2y$10$JTupDh5u2LJ0WpYxlbBsiukbmozBNaYGMCgSAdmM0GuL5kClcLRWe', 'lalamo sobra', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-27 04:36:43', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL),
-(6, '123123123', 'rizalinaangeles@gmail.com', '$2y$10$AH07e0vZhUZayFcxM4GoBeniblWVVPrNpTsdtzFAt7K.ljx5OCeAG', 'FACULTY', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134170/avatar_6979549578d86_mgofyh.jpg', '', 'active', 0, '2026-01-27 06:20:46', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL),
-(7, '123123123123', 'ryananthonyterrado15@gmail.com', '$2y$10$rraRTtGFloqgtuF1UrZ2Oe6nkL2.YpaW3XobwJ8tybtQwKHVmr1f2', 'ryan terrado', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-27 07:59:43', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL),
-(8, '18870', 'mikaellegabriel68@gmail.com', '$2y$10$pth9MQ1n9qvCe7auCcFGw.0URpX71SEenW4bw2cSNBrxTOxsZXT.K', 'Mikaelle Angelo A. Gabriel', 'hjkgjkyhfgkyhfg', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772243937/uploads/avatars/sdvro9dviwvqzxr8wc2o.png', '{\"public_id\":\"uploads\\/avatars\\/sdvro9dviwvqzxr8wc2o\",\"resource_type\":\"image\"}', 'active', 1, '2026-02-21 08:22:21', 0, 0, NULL, 'uploads/covers/cover_6999d24bd1c0c.PNG', 'student', '[{\"reason\":\"This bad\",\"admin_id\":9,\"timestamp\":\"2026-02-21 22:38:41\"}]', NULL, NULL),
-(9, '54241145', 'apogiko722@gmail.com', '$2y$10$m30Z4VL32Srd7TFe7muZG.zoMWMfGjLF967G1BARnuDR11eWZS7U2', 'Gabriel', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772246311/uploads/avatars/hmmpp9yrmkgvpose7pxf.jpg', '{\"public_id\":\"uploads\\/avatars\\/hmmpp9yrmkgvpose7pxf\",\"resource_type\":\"image\"}', 'active', 0, '2026-02-21 15:46:22', 0, 0, NULL, NULL, 'admin', NULL, NULL, NULL),
-(12, '123124', 'benpogi747@gmail.com', '$2y$10$WN7UrX6VHxenXboI1mcVruNC6pq3yq73t3oY.Q7Pfb/EY89NMj0em', 'Ben', '', 'assets/images/default-avatar.png', '', '', 0, '2026-02-21 17:21:06', 0, 0, NULL, NULL, 'student', NULL, '2026-02-21 23:20:09', 'ewwa'),
-(13, '1234354', 'nobaradelacrus@gmail.com', '$2y$10$85aAWqIxaWyUfu5CXI/z.OPB8H9tXs50Sk0Os7M76hxqLlod06al2', 'Nobara', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-02-21 21:54:54', 0, 0, NULL, NULL, 'faculty', NULL, NULL, NULL),
-(15, '00000', 'datamexcollegeofsaintadeline0@gmail.com', '$2y$10$D75yOKtNwCaw3ht8/aCZiOvJzlqkZQZQI2OEOcGtcYhVdyn5rAIvq', 'ADMIN', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772318475/uploads/avatars/ufekyfwmcho6nm7io3l7.png', '{\"public_id\":\"uploads\\/avatars\\/ufekyfwmcho6nm7io3l7\",\"resource_type\":\"image\"}', 'active', 0, '2026-02-28 22:26:57', 0, 0, NULL, NULL, 'admin', NULL, NULL, NULL);
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `name`, `bio`, `avatar`, `avatar_id`, `status`, `warnings`, `created_at`, `failed_login_attempts`, `lock_level`, `lock_until`, `cover_photo`, `account_type`, `warning_reasons`, `banned_until`, `ban_reason`, `new_user_guide_dismissed`) VALUES
+(1, 'admin', 'admin@localhost', '$2y$10$cjH8BQCmB5rNlKAtaQQuhO.4oWoKjGgZsLx1wAqTgzaX9m0kDOS8u', 'Datamex Admin', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134168/avatar_6970e29df232e_oyccuf.jpg', '{\"public_id\":\"avatar_6970e29df232e_oyccuf\":\"image\"}', 'active', 0, '2026-01-21 12:55:42', 0, 0, NULL, 'uploads/covers/cover_6970e2bad0fb1.jpg', 'admin', NULL, NULL, NULL, 0),
+(2, '12345678', 'riveroardrewangeles@gmail.com', '$2y$10$RFFNXsLPvyvQcve28Qw0C.F0PpEIVf2/3OEtriZ1BXeAzurzRY7CK', 'Ardrew Castillo Angeles', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134167/avatar_6970d5f70dbde_jpganz.jpg', '', '', 6, '2026-01-21 13:02:43', 0, 0, NULL, 'uploads/covers/cover_6970d9fa75c60.jpg', 'student', '[{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 06:00:06\"},{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 06:14:19\"},{\"reason\":\"wala lang\",\"admin_id\":1,\"timestamp\":\"2026-01-27 07:02:32\"},{\"reason\":\"tanginamo\",\"admin_id\":1,\"timestamp\":\"2026-01-28 01:05:11\"},{\"reason\":\"nag ban eh\",\"admin_id\":1,\"timestamp\":\"2026-01-28 02:19:21\"},{\"reason\":\"nagmura ka kupal\",\"admin_id\":1,\"timestamp\":\"2026-02-02 03:39:53\"}]', '2026-02-21 17:47:19', 'hey', 0),
+(3, '123456', 'felixardoangeles1963@gmail.com', '$2y$10$am4W3Y9evP5EsRkQMpo9n.wJRDK5O5ZH6nWSJfAWPk/M1v/DVRUyW', 'felixardoangeles', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-21 14:33:20', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 0),
+(4, '1233', 'zedrix@gmail.com', '$2y$10$Rgnr/x5Rp47EhzVxWmdWw.JQgCCqDJ59Iv/EPtcNVZcYgQVvQQaQS', 'Aira Mae Sueno', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134168/avatar_6970e7a6f2f1c_dspyri.jpg', '', 'active', 0, '2026-01-21 14:40:05', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 0),
+(5, '1234567', 'peviwix223@ncien.com', '$2y$10$JTupDh5u2LJ0WpYxlbBsiukbmozBNaYGMCgSAdmM0GuL5kClcLRWe', 'lalamo sobra', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-27 04:36:43', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 0),
+(6, '123123123', 'rizalinaangeles@gmail.com', '$2y$10$AH07e0vZhUZayFcxM4GoBeniblWVVPrNpTsdtzFAt7K.ljx5OCeAG', 'FACULTY', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772134170/avatar_6979549578d86_mgofyh.jpg', '', 'active', 0, '2026-01-27 06:20:46', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 0),
+(7, '123123123123', 'ryananthonyterrado15@gmail.com', '$2y$10$rraRTtGFloqgtuF1UrZ2Oe6nkL2.YpaW3XobwJ8tybtQwKHVmr1f2', 'ryan terrado', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-01-27 07:59:43', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 0),
+(8, '18870', 'mikaellegabriel68@gmail.com', '$2y$10$pth9MQ1n9qvCe7auCcFGw.0URpX71SEenW4bw2cSNBrxTOxsZXT.K', 'Mikaelle Angelo A. Gabriel', 'I want Chen', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772243937/uploads/avatars/sdvro9dviwvqzxr8wc2o.png', '{\"public_id\":\"uploads\\/avatars\\/sdvro9dviwvqzxr8wc2o\",\"resource_type\":\"image\"}', 'active', 1, '2026-02-21 08:22:21', 0, 0, NULL, 'uploads/covers/cover_69a5512576d4c.PNG', 'student', '[{\"reason\":\"This bad\",\"admin_id\":9,\"timestamp\":\"2026-02-21 22:38:41\"}]', NULL, NULL, 0),
+(9, '54241145', 'apogiko722@gmail.com', '$2y$10$m30Z4VL32Srd7TFe7muZG.zoMWMfGjLF967G1BARnuDR11eWZS7U2', 'Gabriel', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772246311/uploads/avatars/hmmpp9yrmkgvpose7pxf.jpg', '{\"public_id\":\"uploads\\/avatars\\/hmmpp9yrmkgvpose7pxf\",\"resource_type\":\"image\"}', 'active', 0, '2026-02-21 15:46:22', 0, 0, NULL, NULL, 'admin', NULL, NULL, NULL, 0),
+(13, '1234354', 'nobaradelacrus@gmail.com', '$2y$10$85aAWqIxaWyUfu5CXI/z.OPB8H9tXs50Sk0Os7M76hxqLlod06al2', 'Nobara', '', 'assets/images/default-avatar.png', '', 'active', 0, '2026-02-21 21:54:54', 0, 0, NULL, NULL, 'faculty', NULL, NULL, NULL, 0),
+(15, '00000', 'datamexcollegeofsaintadeline0@gmail.com', '$2y$10$D75yOKtNwCaw3ht8/aCZiOvJzlqkZQZQI2OEOcGtcYhVdyn5rAIvq', 'ADMIN', '', 'https://res.cloudinary.com/dmkoc4lis/image/upload/v1772318475/uploads/avatars/ufekyfwmcho6nm7io3l7.png', '{\"public_id\":\"uploads\\/avatars\\/ufekyfwmcho6nm7io3l7\",\"resource_type\":\"image\"}', 'active', 0, '2026-02-28 22:26:57', 0, 0, NULL, NULL, 'admin', NULL, NULL, NULL, 0),
+(18, '0875', 'benpogi747@gmail.com', '$2y$10$Q/.V1kkDHmpCMGbBfXp59.4XD/Rr7PBTkqlZJP.a07.7mwhqezd0e', 'Ben', 'Undying', 'assets/images/default-avatar.png', NULL, 'active', 0, '2026-03-01 09:38:56', 0, 0, NULL, NULL, 'student', NULL, NULL, NULL, 1);
 
 --
 -- Indexes for dumped tables
@@ -728,25 +750,25 @@ ALTER TABLE `accounts`
 -- AUTO_INCREMENT for table `admin_logs`
 --
 ALTER TABLE `admin_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `comments`
 --
 ALTER TABLE `comments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `email_verification`
 --
 ALTER TABLE `email_verification`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `likes`
 --
 ALTER TABLE `likes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `messages`
@@ -770,19 +792,19 @@ ALTER TABLE `note_likes`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=141;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=179;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `posts`
 --
 ALTER TABLE `posts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `reports`
@@ -794,7 +816,7 @@ ALTER TABLE `reports`
 -- AUTO_INCREMENT for table `stories`
 --
 ALTER TABLE `stories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `story_likes`
@@ -806,13 +828,13 @@ ALTER TABLE `story_likes`
 -- AUTO_INCREMENT for table `story_views`
 --
 ALTER TABLE `story_views`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- Constraints for dumped tables
