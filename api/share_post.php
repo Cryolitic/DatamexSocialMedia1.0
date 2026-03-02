@@ -22,6 +22,11 @@ if (!$input || !isset($input['post_id']) || !isset($input['user_id'])) {
 
 $post_id = intval($input['post_id']);
 $user_id = intval($input['user_id']);
+$content = isset($input['content']) ? trim((string)$input['content']) : '';
+$privacy = isset($input['privacy']) ? (string)$input['privacy'] : 'public';
+if ($privacy === 'private') $privacy = 'only_me';
+$allowed_privacy = ['only_me', 'followers', 'friends_of_friends', 'public'];
+if (!in_array($privacy, $allowed_privacy, true)) $privacy = 'public';
 
 try {
     $pdo = db();
@@ -33,13 +38,17 @@ try {
         json_response(['success' => false, 'message' => 'Post not found'], 404);
     }
 
-    // Create a new post as a share with reference_post
+    // Create a new post as a share wrapper with optional user caption + privacy.
     $stmt = $pdo->prepare("
         INSERT INTO posts (user_id, content, media_type, media_urls, privacy, reference_post)
-        SELECT :uid, content, media_type, media_urls, 'public', id
-        FROM posts WHERE id = :pid
+        VALUES (:uid, :content, 'text', NULL, :privacy, :pid)
     ");
-    $stmt->execute(['uid' => $user_id, 'pid' => $post_id]);
+    $stmt->execute([
+        'uid' => $user_id,
+        'content' => $content,
+        'privacy' => $privacy,
+        'pid' => $post_id
+    ]);
 
     // Count shares (posts referencing this post)
     $countStmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM posts WHERE reference_post = :pid');

@@ -17,11 +17,13 @@ let hasShownNewUserGuidePopup = false;
 let isNewUserGuideDismissedForAccount = false;
 const MAX_TOTAL_UPLOAD_MB = 38;
 let mediaViewerState = { items: [], index: 0 };
+let allowEditPostModalClose = false;
 let editPostState = {
     postId: null,
     existingMedia: [],
     newMedia: [],
-    nextNewId: 1
+    nextNewId: 1,
+    originalContent: ''
 };
 
 function dismissNewUserGuideForever() {
@@ -188,7 +190,7 @@ function setupEventListeners() {
 
     // Create post button
     document.getElementById('createPostBtn').addEventListener('click', createPost);
-    document.getElementById('discardPostDraftBtn')?.addEventListener('click', discardCreatePostDraft);
+    document.getElementById('discardPostDraftBtn')?.addEventListener('click', () => discardCreatePostDraft());
     document.getElementById('postContent')?.addEventListener('input', updateCreatePostDiscardVisibility);
     
     // View Announcements button (toggle announcements-only feed)
@@ -296,7 +298,11 @@ function setupEventListeners() {
     document.getElementById('editPostMediaManagerAddBtn')?.addEventListener('click', () => {
         document.getElementById('editPostMediaInput')?.click();
     });
-    document.getElementById('editPostModal')?.addEventListener('hidden.bs.modal', resetEditPostState);
+    document.getElementById('editPostModal')?.addEventListener('hide.bs.modal', handleEditPostModalHide);
+    document.getElementById('editPostModal')?.addEventListener('hidden.bs.modal', () => {
+        resetEditPostState();
+        allowEditPostModalClose = false;
+    });
     document.getElementById('editPostMediaManagerModal')?.addEventListener('shown.bs.modal', renderEditPostMediaManager);
     document.getElementById('mediaViewerPrevBtn')?.addEventListener('click', showPrevMediaInViewer);
     document.getElementById('mediaViewerNextBtn')?.addEventListener('click', showNextMediaInViewer);
@@ -530,6 +536,19 @@ function openUserProfile(userId) {
         .then(data => {
             if (!data.success || !data.profile) return;
             showProfileChoice(data.profile);
+        })
+        .catch(() => {});
+}
+
+function openUserProfileToPost(userId, postId) {
+    hideUserSearchResults();
+    fetch(`api/get_profile.php?user_id=${encodeURIComponent(userId)}&viewer_id=${encodeURIComponent(currentUser.id)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.profile) return;
+            focusPostId = postId ? Number(postId) : null;
+            setActiveNav('profile');
+            visitProfile(data.profile);
         })
         .catch(() => {});
 }
@@ -787,12 +806,58 @@ function removeSelectedCreateMedia(index) {
     renderCreatePostMediaPreview();
 }
 
-function discardCreatePostDraft() {
+function discardCreatePostDraft(force = false) {
+    if (!force && hasCreatePostDraftChanges()) {
+        Swal.fire({
+            title: 'Discard changes?',
+            text: 'Your current post draft will be cleared.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Discard',
+            cancelButtonText: 'Keep editing',
+            confirmButtonColor: '#ef4444'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                discardCreatePostDraft(true);
+            }
+        });
+        return;
+    }
     document.getElementById('postContent').value = '';
     document.getElementById('postMedia').value = '';
     selectedMediaFiles = [];
     renderCreatePostMediaPreview();
     updateCreatePostDiscardVisibility();
+}
+
+function isEditPostDirty() {
+    if (!editPostState.postId) return false;
+    const currentContent = (document.getElementById('editPostContent')?.value || '').trim();
+    if (currentContent !== (editPostState.originalContent || '')) return true;
+    if (editPostState.newMedia.length > 0) return true;
+    if (editPostState.existingMedia.some(item => item.removed)) return true;
+    return false;
+}
+
+function handleEditPostModalHide(e) {
+    if (allowEditPostModalClose) return;
+    if (!isEditPostDirty()) return;
+    e.preventDefault();
+    Swal.fire({
+        title: 'Discard edit changes?',
+        text: 'Your unsaved post edits will be lost.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Discard',
+        cancelButtonText: 'Keep editing',
+        confirmButtonColor: '#ef4444'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            allowEditPostModalClose = true;
+            const modalEl = document.getElementById('editPostModal');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        }
+    });
 }
 
 function hasCreatePostDraftChanges() {
@@ -928,7 +993,7 @@ function createPost() {
             });
             
             // Reset form
-            discardCreatePostDraft();
+            discardCreatePostDraft(true);
             document.getElementById('isAnnouncement').checked = false;
             const pr = document.getElementById('privacyRow');
             if (pr) pr.style.display = 'flex';
@@ -990,7 +1055,7 @@ function createPost() {
         });
         
         // Reset form
-        discardCreatePostDraft();
+        discardCreatePostDraft(true);
         
         btn.innerHTML = originalHTML;
         btn.disabled = false;
@@ -1063,6 +1128,11 @@ function createPostElement(post) {
     const timeAgo = getTimeAgo(post.timestamp);
     const isOwner = post.user_id === currentUser.id;
     const mediaHtml = renderPostMedia(post);
+    const isSharedPost = !!(post.reference_post && post.reference);
+    const sharedRefHtml = isSharedPost ? renderSharedReferencePost(post.reference) : '';
+    const sharerContentHtml = post.content
+        ? `<div class="post-content">${escapeHtml(post.content)}</div>`
+        : '';
 
     div.innerHTML = `
         <div class="post-header">
@@ -1077,6 +1147,7 @@ function createPostElement(post) {
                 <div class="post-time">
                     ${timeAgo}
                     ${post.privacy ? `<span class="privacy-badge ms-1" title="${privacyLabel(post.privacy)}"><i class="fas ${privacyIcon(post.privacy)}"></i></span>` : ''}
+                    ${isSharedPost ? '<span class="ms-2 text-muted">shared a post</span>' : ''}
                 </div>
             </div>
             ${isOwner ? `
@@ -1093,8 +1164,8 @@ function createPostElement(post) {
                 </div>
             ` : '')}
         </div>
-        <div class="post-content">${escapeHtml(post.content)}</div>
-        ${mediaHtml}
+        ${sharerContentHtml}
+        ${isSharedPost ? sharedRefHtml : mediaHtml}
         <div class="post-interactions">
             <button class="interaction-btn ${post.isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
                 <i class="fas fa-heart"></i>
@@ -1121,6 +1192,27 @@ function createPostElement(post) {
     `;
     
     return div;
+}
+
+function renderSharedReferencePost(reference) {
+    if (!reference) return '';
+    const refMediaHtml = renderPostMedia(reference);
+    const refTimeAgo = getTimeAgo(reference.timestamp);
+    return `
+        <div class="shared-reference-card">
+            <div class="post-header shared-reference-header">
+                <img src="${reference.avatar}" alt="${reference.name}" class="post-avatar clickable-profile" onclick="openUserProfileToPost(${reference.user_id}, ${reference.id})" onerror="this.src='imagesrc/default-avatar.png'">
+                <div class="post-user-info">
+                    <div class="post-user-name clickable-profile" onclick="openUserProfileToPost(${reference.user_id}, ${reference.id})">
+                        ${escapeHtml(reference.name)}
+                    </div>
+                    <div class="post-time">${refTimeAgo}</div>
+                </div>
+            </div>
+            ${reference.content ? `<div class="post-content">${escapeHtml(reference.content)}</div>` : ''}
+            ${refMediaHtml}
+        </div>
+    `;
 }
 
 function visitProfile(profile) {
@@ -1688,9 +1780,20 @@ function toggleLike(postId) {
 
 function toggleComments(postId) {
     const commentSection = document.getElementById(`comments-${postId}`);
+    const isOpening = commentSection && commentSection.style.display === 'none';
+
+    // Close all other comment sections first.
+    document.querySelectorAll('.comment-section').forEach((section) => {
+        if (section.id !== `comments-${postId}`) {
+            section.style.display = 'none';
+        }
+    });
+
     if (commentSection) {
-        commentSection.style.display = commentSection.style.display === 'none' ? 'block' : 'none';
+        commentSection.style.display = isOpening ? 'block' : 'none';
     }
+    const input = document.getElementById(`comment-input-${postId}`);
+    if (input && commentSection && isOpening) input.focus();
 }
 
 function addComment(postId) {
@@ -1746,35 +1849,106 @@ function addComment(postId) {
 function sharePost(postId) {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    
-    fetch('api/share_post.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+
+    openShareComposer(postId, post, { content: '', privacy: 'public' });
+}
+
+function openShareComposer(postId, post, draft = { content: '', privacy: 'public' }) {
+    const shareDraft = {
+        content: String(draft.content || ''),
+        privacy: String(draft.privacy || 'public')
+    };
+
+    Swal.fire({
+        title: 'Share Post',
+        html: `
+            <div class="text-start">
+                <label for="sharePostText" class="form-label">Add text (optional)</label>
+                <textarea id="sharePostText" class="form-control mb-3" rows="3" maxlength="500" placeholder="Say something about this post..."></textarea>
+                <label for="sharePostPrivacy" class="form-label">Privacy</label>
+                <select id="sharePostPrivacy" class="form-select">
+                    <option value="only_me">Only me</option>
+                    <option value="followers">Friends (followers)</option>
+                    <option value="friends_of_friends">Friends of friends</option>
+                    <option value="public" selected>Public</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Share',
+        confirmButtonColor: '#6366f1',
+        didOpen: () => {
+            const textEl = document.getElementById('sharePostText');
+            const privacyEl = document.getElementById('sharePostPrivacy');
+            if (textEl) textEl.value = shareDraft.content;
+            if (privacyEl) privacyEl.value = shareDraft.privacy;
         },
-        body: JSON.stringify({
-            post_id: postId,
-            user_id: currentUser.id
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            post.shares = data.share_count || post.shares + 1;
-            renderPosts();
-            
-            // Create notification
-            addNotification({
-                type: 'share',
-                message: `${currentUser.name} shared your post`,
-                post_id: postId
-            });
+        willClose: () => {
+            const textEl = document.getElementById('sharePostText');
+            const privacyEl = document.getElementById('sharePostPrivacy');
+            if (textEl) shareDraft.content = textEl.value || '';
+            if (privacyEl) shareDraft.privacy = privacyEl.value || 'public';
+        },
+        preConfirm: () => {
+            const content = (document.getElementById('sharePostText')?.value || '').trim();
+            const privacy = document.getElementById('sharePostPrivacy')?.value || 'public';
+            return { content, privacy };
         }
-    })
-    .catch(error => {
-        // Demo mode
-        post.shares += 1;
-        renderPosts();
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            const hasDraft = (shareDraft.content || '').trim().length > 0 || (shareDraft.privacy !== 'public');
+            if (!hasDraft) return;
+            Swal.fire({
+                title: 'Discard share draft?',
+                text: 'Your share text/privacy changes will be lost.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Discard',
+                cancelButtonText: 'Keep editing',
+                confirmButtonColor: '#ef4444'
+            }).then((discardResult) => {
+                if (!discardResult.isConfirmed) {
+                    openShareComposer(postId, post, shareDraft);
+                }
+            });
+            return;
+        }
+        const payload = result.value || { content: '', privacy: 'public' };
+
+        fetch('api/share_post.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                post_id: postId,
+                user_id: currentUser.id,
+                content: payload.content,
+                privacy: payload.privacy
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                post.shares = data.share_count || post.shares + 1;
+                loadPosts();
+                
+                // Create notification
+                addNotification({
+                    type: 'share',
+                    message: `${currentUser.name} shared your post`,
+                    post_id: postId
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to share post', 'error');
+            }
+        })
+        .catch(error => {
+            // Demo mode
+            post.shares += 1;
+            renderPosts();
+            Swal.fire('Shared', 'Post shared locally (demo mode).', 'success');
+        });
     });
 }
 
@@ -1803,6 +1977,7 @@ function editPost(postId) {
 
     resetEditPostState();
     editPostState.postId = postId;
+    editPostState.originalContent = (post.content || '').trim();
     editPostState.existingMedia = normalizePostMedia(post).map((url, idx) => ({
         id: `existing-${idx}`,
         url,
@@ -1834,7 +2009,8 @@ function resetEditPostState() {
         postId: null,
         existingMedia: [],
         newMedia: [],
-        nextNewId: 1
+        nextNewId: 1,
+        originalContent: ''
     };
     const fileInput = document.getElementById('editPostMediaInput');
     if (fileInput) fileInput.value = '';
@@ -2087,7 +2263,10 @@ function saveEditedPost() {
         const mediaManagerModalEl = document.getElementById('editPostMediaManagerModal');
         const editPostModalEl = document.getElementById('editPostModal');
         if (mediaManagerModalEl) bootstrap.Modal.getOrCreateInstance(mediaManagerModalEl).hide();
-        if (editPostModalEl) bootstrap.Modal.getOrCreateInstance(editPostModalEl).hide();
+        if (editPostModalEl) {
+            allowEditPostModalClose = true;
+            bootstrap.Modal.getOrCreateInstance(editPostModalEl).hide();
+        }
         Swal.fire('Updated!', 'Your post has been updated.', 'success');
     })
     .catch((error) => {

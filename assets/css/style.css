@@ -2028,6 +2028,18 @@ button#viewAnnouncementsBtn.action-btn i {
     cursor: pointer;
 }
 
+.shared-reference-card {
+    margin: 0 12px 12px;
+    border: 1px solid #dbe2ea;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.shared-reference-header {
+    border-bottom: 1px solid #eef2f7;
+}
+
 /* Edit post media modals */
 .edit-post-media-preview {
     border: 1px solid #e2e8f0;

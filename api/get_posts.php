@@ -333,8 +333,72 @@ try {
         }
     }
 
+    $extractMedia = function ($mediaUrls) {
+        if (empty($mediaUrls)) return null;
+        $decoded = json_decode($mediaUrls, true);
+        if (!is_array($decoded)) return null;
+        return array_values(array_filter(array_map(function($item) {
+            if (is_array($item) && !empty($item['url'])) return $item['url'];
+            if (is_string($item) && $item !== '') return $item;
+            return null;
+        }, $decoded)));
+    };
+
+    // Resolve shared-post chain to the root/original post for display.
+    $referenceRowCache = [];
+    $resolvedReferenceCache = [];
+    $resolveReference = function ($startId) use (&$resolveReference, &$referenceRowCache, &$resolvedReferenceCache, $pdo, $safeAvatar, $extractMedia) {
+        $startId = (int)$startId;
+        if ($startId <= 0) return null;
+        if (array_key_exists($startId, $resolvedReferenceCache)) {
+            return $resolvedReferenceCache[$startId];
+        }
+
+        $currentId = $startId;
+        $visited = [];
+        $last = null;
+
+        while ($currentId > 0 && !isset($visited[$currentId])) {
+            $visited[$currentId] = true;
+            if (!array_key_exists($currentId, $referenceRowCache)) {
+                $refStmt = $pdo->prepare("
+                    SELECT p.*, u.username, u.name, u.avatar, u.account_type
+                    FROM posts p
+                    JOIN users u ON u.id = p.user_id
+                    WHERE p.id = :id AND p.deleted_at IS NULL
+                ");
+                $refStmt->execute(['id' => $currentId]);
+                $referenceRowCache[$currentId] = $refStmt->fetch() ?: null;
+            }
+
+            $row = $referenceRowCache[$currentId];
+            if (!$row) break;
+
+            $last = [
+                'id' => (int)$row['id'],
+                'user_id' => (int)$row['user_id'],
+                'username' => $row['username'] ?: $row['user_id'],
+                'name' => $row['name'] ?: $row['username'],
+                'avatar' => $safeAvatar($row['avatar']),
+                'content' => $row['content'],
+                'media' => $extractMedia($row['media_urls']),
+                'media_type' => $row['media_type'],
+                'timestamp' => $row['created_at'],
+                'post_type' => $row['post_type'] ?? 'post',
+                'account_type' => $row['account_type'] ?? 'student'
+            ];
+
+            $nextId = (int)($row['reference_post'] ?? 0);
+            if ($nextId <= 0) break;
+            $currentId = $nextId;
+        }
+
+        $resolvedReferenceCache[$startId] = $last;
+        return $last;
+    };
+
     // Map response
-    $responsePosts = array_map(function ($p) use ($commentsByPost, $safeAvatar) {
+    $responsePosts = array_map(function ($p) use ($commentsByPost, $safeAvatar, $resolveReference) {
         $media = null;
             if (!empty($p['media_urls'])) {
                 $decoded = json_decode($p['media_urls'], true);
@@ -366,6 +430,7 @@ try {
             'timestamp' => $p['created_at'],
             'isLiked' => (bool)$p['is_liked'],
             'reference_post' => $p['reference_post'],
+            'reference' => !empty($p['reference_post']) ? $resolveReference((int)$p['reference_post']) : null,
             'privacy' => $p['privacy'],
             'post_type' => $p['post_type'] ?? 'post',
             'account_type' => $p['account_type'] ?? 'student'
