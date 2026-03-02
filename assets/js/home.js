@@ -17,11 +17,13 @@ let hasShownNewUserGuidePopup = false;
 let isNewUserGuideDismissedForAccount = false;
 const MAX_TOTAL_UPLOAD_MB = 38;
 let mediaViewerState = { items: [], index: 0 };
+let allowEditPostModalClose = false;
 let editPostState = {
     postId: null,
     existingMedia: [],
     newMedia: [],
-    nextNewId: 1
+    nextNewId: 1,
+    originalContent: ''
 };
 
 function dismissNewUserGuideForever() {
@@ -188,7 +190,7 @@ function setupEventListeners() {
 
     // Create post button
     document.getElementById('createPostBtn').addEventListener('click', createPost);
-    document.getElementById('discardPostDraftBtn')?.addEventListener('click', discardCreatePostDraft);
+    document.getElementById('discardPostDraftBtn')?.addEventListener('click', () => discardCreatePostDraft());
     document.getElementById('postContent')?.addEventListener('input', updateCreatePostDiscardVisibility);
     
     // View Announcements button (toggle announcements-only feed)
@@ -296,7 +298,11 @@ function setupEventListeners() {
     document.getElementById('editPostMediaManagerAddBtn')?.addEventListener('click', () => {
         document.getElementById('editPostMediaInput')?.click();
     });
-    document.getElementById('editPostModal')?.addEventListener('hidden.bs.modal', resetEditPostState);
+    document.getElementById('editPostModal')?.addEventListener('hide.bs.modal', handleEditPostModalHide);
+    document.getElementById('editPostModal')?.addEventListener('hidden.bs.modal', () => {
+        resetEditPostState();
+        allowEditPostModalClose = false;
+    });
     document.getElementById('editPostMediaManagerModal')?.addEventListener('shown.bs.modal', renderEditPostMediaManager);
     document.getElementById('mediaViewerPrevBtn')?.addEventListener('click', showPrevMediaInViewer);
     document.getElementById('mediaViewerNextBtn')?.addEventListener('click', showNextMediaInViewer);
@@ -800,12 +806,58 @@ function removeSelectedCreateMedia(index) {
     renderCreatePostMediaPreview();
 }
 
-function discardCreatePostDraft() {
+function discardCreatePostDraft(force = false) {
+    if (!force && hasCreatePostDraftChanges()) {
+        Swal.fire({
+            title: 'Discard changes?',
+            text: 'Your current post draft will be cleared.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Discard',
+            cancelButtonText: 'Keep editing',
+            confirmButtonColor: '#ef4444'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                discardCreatePostDraft(true);
+            }
+        });
+        return;
+    }
     document.getElementById('postContent').value = '';
     document.getElementById('postMedia').value = '';
     selectedMediaFiles = [];
     renderCreatePostMediaPreview();
     updateCreatePostDiscardVisibility();
+}
+
+function isEditPostDirty() {
+    if (!editPostState.postId) return false;
+    const currentContent = (document.getElementById('editPostContent')?.value || '').trim();
+    if (currentContent !== (editPostState.originalContent || '')) return true;
+    if (editPostState.newMedia.length > 0) return true;
+    if (editPostState.existingMedia.some(item => item.removed)) return true;
+    return false;
+}
+
+function handleEditPostModalHide(e) {
+    if (allowEditPostModalClose) return;
+    if (!isEditPostDirty()) return;
+    e.preventDefault();
+    Swal.fire({
+        title: 'Discard edit changes?',
+        text: 'Your unsaved post edits will be lost.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Discard',
+        cancelButtonText: 'Keep editing',
+        confirmButtonColor: '#ef4444'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            allowEditPostModalClose = true;
+            const modalEl = document.getElementById('editPostModal');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        }
+    });
 }
 
 function hasCreatePostDraftChanges() {
@@ -941,7 +993,7 @@ function createPost() {
             });
             
             // Reset form
-            discardCreatePostDraft();
+            discardCreatePostDraft(true);
             document.getElementById('isAnnouncement').checked = false;
             const pr = document.getElementById('privacyRow');
             if (pr) pr.style.display = 'flex';
@@ -1003,7 +1055,7 @@ function createPost() {
         });
         
         // Reset form
-        discardCreatePostDraft();
+        discardCreatePostDraft(true);
         
         btn.innerHTML = originalHTML;
         btn.disabled = false;
@@ -1798,6 +1850,15 @@ function sharePost(postId) {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
 
+    openShareComposer(postId, post, { content: '', privacy: 'public' });
+}
+
+function openShareComposer(postId, post, draft = { content: '', privacy: 'public' }) {
+    const shareDraft = {
+        content: String(draft.content || ''),
+        privacy: String(draft.privacy || 'public')
+    };
+
     Swal.fire({
         title: 'Share Post',
         html: `
@@ -1816,13 +1877,42 @@ function sharePost(postId) {
         showCancelButton: true,
         confirmButtonText: 'Share',
         confirmButtonColor: '#6366f1',
+        didOpen: () => {
+            const textEl = document.getElementById('sharePostText');
+            const privacyEl = document.getElementById('sharePostPrivacy');
+            if (textEl) textEl.value = shareDraft.content;
+            if (privacyEl) privacyEl.value = shareDraft.privacy;
+        },
+        willClose: () => {
+            const textEl = document.getElementById('sharePostText');
+            const privacyEl = document.getElementById('sharePostPrivacy');
+            if (textEl) shareDraft.content = textEl.value || '';
+            if (privacyEl) shareDraft.privacy = privacyEl.value || 'public';
+        },
         preConfirm: () => {
             const content = (document.getElementById('sharePostText')?.value || '').trim();
             const privacy = document.getElementById('sharePostPrivacy')?.value || 'public';
             return { content, privacy };
         }
     }).then((result) => {
-        if (!result.isConfirmed) return;
+        if (!result.isConfirmed) {
+            const hasDraft = (shareDraft.content || '').trim().length > 0 || (shareDraft.privacy !== 'public');
+            if (!hasDraft) return;
+            Swal.fire({
+                title: 'Discard share draft?',
+                text: 'Your share text/privacy changes will be lost.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Discard',
+                cancelButtonText: 'Keep editing',
+                confirmButtonColor: '#ef4444'
+            }).then((discardResult) => {
+                if (!discardResult.isConfirmed) {
+                    openShareComposer(postId, post, shareDraft);
+                }
+            });
+            return;
+        }
         const payload = result.value || { content: '', privacy: 'public' };
 
         fetch('api/share_post.php', {
@@ -1887,6 +1977,7 @@ function editPost(postId) {
 
     resetEditPostState();
     editPostState.postId = postId;
+    editPostState.originalContent = (post.content || '').trim();
     editPostState.existingMedia = normalizePostMedia(post).map((url, idx) => ({
         id: `existing-${idx}`,
         url,
@@ -1918,7 +2009,8 @@ function resetEditPostState() {
         postId: null,
         existingMedia: [],
         newMedia: [],
-        nextNewId: 1
+        nextNewId: 1,
+        originalContent: ''
     };
     const fileInput = document.getElementById('editPostMediaInput');
     if (fileInput) fileInput.value = '';
@@ -2171,7 +2263,10 @@ function saveEditedPost() {
         const mediaManagerModalEl = document.getElementById('editPostMediaManagerModal');
         const editPostModalEl = document.getElementById('editPostModal');
         if (mediaManagerModalEl) bootstrap.Modal.getOrCreateInstance(mediaManagerModalEl).hide();
-        if (editPostModalEl) bootstrap.Modal.getOrCreateInstance(editPostModalEl).hide();
+        if (editPostModalEl) {
+            allowEditPostModalClose = true;
+            bootstrap.Modal.getOrCreateInstance(editPostModalEl).hide();
+        }
         Swal.fire('Updated!', 'Your post has been updated.', 'success');
     })
     .catch((error) => {
