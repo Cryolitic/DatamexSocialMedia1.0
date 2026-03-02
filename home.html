@@ -25,46 +25,33 @@
     <!-- Navigation Bar -->
     <nav class="navbar-custom">
         <div class="container-fluid d-flex align-items-center">
-            
-            <!-- 1. BURGER MENU (Moved to the Start) -->
-            <button type="button" class="nav-burger btn me-2 border-0" id="navBurger" aria-label="Menu">
-                <i class="fas fa-bars"></i>
-            </button>
-
-            <!-- 2. BRAND LOGO -->
-            <a class="navbar-brand me-3" href="#" id="navBrand">
+            <a class="navbar-brand" href="#" id="navBrand">
                 <img src="imagesrc/logo.jpg" alt="Logo" class="nav-logo" onerror="this.style.display='none';">
-                <span class="d-none d-sm-block">Social Media</span>
+                <span>Social Media</span>
             </a>
             
-            <!-- 3. SEARCH BAR (Shortened & Centered) -->
-            <!-- Changed: Removed 'flex-grow-1', added 'mx-auto' and style width -->
-            <div class="nav-search d-none d-lg-flex mx-auto" id="navSearchWrap" style="width: 100%; max-width: 400px;">
-                <i class="fas fa-search nav-search-icon"></i>
-                <input type="text" id="userSearchInput" class="nav-search-input flex-grow-1" placeholder="Search users...">
-                <button type="button" class="btn btn-sm btn-link text-secondary d-lg-none p-0 ms-2" id="navSearchClose" aria-label="Close search">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="nav-search-results" id="userSearchResults"></div>
-            </div>
+                    <div class="nav-search flex-grow-1 mx-2 d-none d-lg-flex" id="navSearchWrap">
+                        <i class="fas fa-search nav-search-icon"></i>
+                        <input type="text" id="userSearchInput" class="nav-search-input flex-grow-1" placeholder="Search users...">
+                        <button type="button" class="btn btn-sm btn-link text-secondary d-lg-none p-0 ms-2" id="navSearchClose" aria-label="Close search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <div class="nav-search-results" id="userSearchResults"></div>
+                    </div>
           
-            <!-- 4. RIGHT SIDE ICONS -->
-            <div class="navbar-nav-custom d-flex align-items-center ms-auto" id="navLinks">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-2 d-lg-none" id="navSearchToggle" aria-label="Open search">
-                    <i class="fas fa-search"></i>
-                </button>
 
+            <div class="navbar-nav-custom" id="navLinks">
                 <a href="#" class="nav-link active" data-page="home">
                     <i class="fas fa-home"></i>
-                    <span class="d-none d-xl-inline">Home</span>
+                    <span>Home</span>
                 </a>
                 <a href="#" class="nav-link" data-page="profile">
                     <i class="fas fa-user"></i>
-                    <span class="d-none d-xl-inline">Profile</span>
+                    <span>Profile</span>
                 </a>
-                <a href="#" class="nav-link position-relative" id="notificationBtn">
+                <a href="#" class="nav-link" id="notificationBtn">
                     <i class="fas fa-bell"></i>
-                    <span class="d-none d-xl-inline">Notifications</span>
+                    <span>Notifications</span>
                     <span class="badge-notification" id="notificationBadge">0</span>
                 </a>
                 <div class="dropdown">
@@ -79,6 +66,12 @@
                     </ul>
                 </div>
             </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm ms-2 d-inline-flex d-lg-none" id="navSearchToggle" aria-label="Open search">
+                <i class="fas fa-search"></i>
+            </button>
+            <button type="button" class="nav-burger btn ms-2" id="navBurger" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
     </nav>
 
