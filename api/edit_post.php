@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+ini_set('display_errors', '0');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -14,6 +15,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['success' => false, 'message' => 'Method not allowed'], 405);
+}
+
+function ini_size_to_bytes(string $value): int {
+    $value = trim($value);
+    if ($value === '') return 0;
+    $unit = strtolower(substr($value, -1));
+    $num = (float)$value;
+    return match ($unit) {
+        'g' => (int)($num * 1024 * 1024 * 1024),
+        'm' => (int)($num * 1024 * 1024),
+        'k' => (int)($num * 1024),
+        default => (int)$num,
+    };
+}
+
+$postMaxBytes = ini_size_to_bytes((string)ini_get('post_max_size'));
+$contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int)$_SERVER['CONTENT_LENGTH'] : 0;
+if ($postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+    json_response([
+        'success' => false,
+        'message' => 'Total upload is too large for server limit. Please upload smaller or fewer files.'
+    ], 413);
 }
 
 function upload_error_message(int $code): string {
@@ -201,7 +224,8 @@ try {
                 $has_video = true;
                 break;
             }
-            if (str_ends_with(strtolower((string)($media['url'] ?? '')), '.mp4')) {
+            $url = strtolower((string)($media['url'] ?? ''));
+            if ($url !== '' && substr($url, -4) === '.mp4') {
                 $has_video = true;
                 break;
             }

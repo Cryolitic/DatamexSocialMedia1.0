@@ -15,6 +15,7 @@ let profileStatsRequestSeq = 0; // prevent stale async profile stats overwriting
 let currentUserRole = 'student';
 let hasShownNewUserGuidePopup = false;
 let isNewUserGuideDismissedForAccount = false;
+const MAX_TOTAL_UPLOAD_MB = 38;
 let mediaViewerState = { items: [], index: 0 };
 let editPostState = {
     postId: null,
@@ -344,6 +345,17 @@ function setupEventListeners() {
         document.getElementById('notesListContainer').innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Loading...</div>';
         loadNotes();
     });
+
+    // Allow only one video to play at a time across the whole app.
+    document.addEventListener('play', function (e) {
+        const playingVideo = e.target;
+        if (!(playingVideo instanceof HTMLVideoElement)) return;
+        document.querySelectorAll('video').forEach((videoEl) => {
+            if (videoEl !== playingVideo && !videoEl.paused) {
+                videoEl.pause();
+            }
+        });
+    }, true);
     
     // Announcement checkbox handler
     const announcementCheckbox = document.getElementById('isAnnouncement');
@@ -685,7 +697,16 @@ function navigateTo(page) {
     }
 
     if (page === 'profile') {
-        visitProfile(currentUser);
+        fetch(`api/get_profile.php?user_id=${currentUser.id}&viewer_id=${currentUser.id}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.profile) {
+                    visitProfile(data.profile);
+                } else {
+                    visitProfile(currentUser);
+                }
+            })
+            .catch(() => visitProfile(currentUser));
         return;
     }
 
@@ -702,14 +723,22 @@ function handleMediaPreview(e) {
         }
     }
 
+    const nextFiles = [...selectedMediaFiles];
     incoming.forEach((file) => {
         const exists = selectedMediaFiles.some(
             (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
         );
         if (!exists) {
-            selectedMediaFiles.push(file);
+            nextFiles.push(file);
         }
     });
+
+    if (!validateTotalUploadSize(nextFiles)) {
+        e.target.value = '';
+        return;
+    }
+
+    selectedMediaFiles = nextFiles;
 
     e.target.value = '';
     renderCreatePostMediaPreview();
@@ -808,6 +837,29 @@ function validateFile(file, options = {}) {
         return false;
     }
     
+    return true;
+}
+
+function bytesToMb(bytes) {
+    return Number(bytes || 0) / (1024 * 1024);
+}
+
+function getTotalFilesBytes(files) {
+    return (files || []).reduce((sum, f) => sum + Number(f?.size || 0), 0);
+}
+
+function validateTotalUploadSize(files, maxTotalMB = MAX_TOTAL_UPLOAD_MB) {
+    const totalBytes = getTotalFilesBytes(files);
+    const totalMB = bytesToMb(totalBytes);
+    if (totalMB > maxTotalMB) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Total Upload Too Large',
+            text: `Total selected media is ${totalMB.toFixed(1)}MB. Maximum allowed is ${maxTotalMB}MB.`,
+            confirmButtonColor: '#6366f1'
+        });
+        return false;
+    }
     return true;
 }
 
@@ -1432,6 +1484,10 @@ function openMediaViewer(src, isVideo = false) {
         modal.show();
         return;
     }
+
+    if (!validateTotalUploadSize(mediaFiles)) {
+        return;
+    }
     renderMediaViewerAtCurrentIndex();
 }
 
@@ -1791,9 +1847,9 @@ function resetEditPostState() {
 function getActiveEditMediaItems() {
     const existing = editPostState.existingMedia
         .filter(item => !item.removed)
-        .map(item => ({ id: item.id, url: item.url, isNew: false }));
+        .map(item => ({ id: item.id, url: item.url, isNew: false, isVideo: isVideoMediaUrl(item.url) }));
     const newer = editPostState.newMedia
-        .map(item => ({ id: item.id, url: item.previewUrl, isNew: true }));
+        .map(item => ({ id: item.id, url: item.previewUrl, isNew: true, isVideo: !!item.isVideo }));
     return [...existing, ...newer];
 }
 
@@ -1819,7 +1875,7 @@ function renderEditPostMediaPreview() {
         ? `<button type="button" class="btn btn-sm btn-danger edit-media-overlay-btn" title="Remove media" onclick="removeEditMediaItem('${first.id}')"><i class="fas fa-trash"></i></button>`
         : `<button type="button" class="btn btn-sm btn-primary edit-media-overlay-btn" title="Edit media list" onclick="openEditPostMediaManager()"><i class="fas fa-pen"></i></button>`;
 
-    const mediaHtml = isVideoMediaUrl(first.url)
+    const mediaHtml = first.isVideo
         ? `<video src="${first.url}" controls playsinline></video>`
         : `<img src="${first.url}" alt="Post media preview">`;
 
@@ -1854,13 +1910,33 @@ function handleEditPostMediaSelect(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
+    const validIncoming = [];
     files.forEach(file => {
-        if (!validateFile(file, { allowVideo: true, maxSizeMB: 30 })) return;
+        if (validateFile(file, { allowVideo: true, maxSizeMB: 30 })) {
+            validIncoming.push(file);
+        }
+    });
+    if (!validIncoming.length) {
+        e.target.value = '';
+        return;
+    }
+
+    const nextTotalFiles = [
+        ...editPostState.newMedia.map(item => item.file),
+        ...validIncoming
+    ];
+    if (!validateTotalUploadSize(nextTotalFiles)) {
+        e.target.value = '';
+        return;
+    }
+
+    validIncoming.forEach(file => {
         const previewUrl = URL.createObjectURL(file);
         editPostState.newMedia.push({
             id: `new-${editPostState.nextNewId++}`,
             file,
-            previewUrl
+            previewUrl,
+            isVideo: file.type.startsWith('video/')
         });
     });
 
@@ -1913,7 +1989,7 @@ function renderEditPostMediaManager() {
     }
 
     const cards = items.map(item => {
-        const media = isVideoMediaUrl(item.url)
+        const media = item.isVideo
             ? `<video src="${item.url}" controls playsinline></video>`
             : `<img src="${item.url}" alt="Post media">`;
         return `
@@ -1955,6 +2031,11 @@ function saveEditedPost() {
         return;
     }
 
+    const newFiles = editPostState.newMedia.map(item => item.file);
+    if (!validateTotalUploadSize(newFiles)) {
+        return;
+    }
+
     if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
@@ -1972,7 +2053,19 @@ function saveEditedPost() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(async (response) => {
+        const raw = await response.text();
+        let data = null;
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            throw new Error((raw || 'Invalid server response').replace(/<[^>]*>/g, ' ').trim().slice(0, 300));
+        }
+        if (!response.ok) {
+            throw new Error(data?.message || `Request failed with status ${response.status}`);
+        }
+        return data;
+    })
     .then(data => {
         if (!data.success) {
             throw new Error(data.message || 'Failed to update post');
