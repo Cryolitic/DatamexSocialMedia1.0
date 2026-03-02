@@ -2178,3 +2178,186 @@ button#viewAnnouncementsBtn.action-btn i {
     0%, 100% { background: #ffffff; }
     50% { background: #fff9e6; box-shadow: 0 0 0 2px #f59e0b; }
 }
+
+/* ========================================= */
+/* ===== MODERN FEED UI UPGRADE (SaaS) ===== */
+/* ========================================= */
+
+.home-body {
+    background: #eef2f6; /* Soft, cool background */
+    font-family: 'Poppins', sans-serif !important;
+}
+
+/* Glassmorphism Navbar */
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Universal Floating Cards */
+.profile-card, 
+.create-post-card, 
+.post-card, 
+.widget-card, 
+.stories-row,
+.admin-modal-content {
+    border: 1px solid #ffffff !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04) !important;
+    background: #ffffff !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Make hover effect softer */
+.post-card:hover {
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Premium Create Post Input */
+.create-post-input {
+    border-radius: 30px !important;
+    background: #f1f5f9 !important;
+    border: 2px solid transparent !important;
+    padding: 12px 20px !important;
+}
+
+.create-post-input:focus {
+    background: #ffffff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Post Button Gradient Upgrade */
+.create-post-actions .action-btn {
+    border-radius: 12px !important;
+}
+
+#createPostBtn {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+    padding: 8px 20px !important;
+}
+
+#createPostBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+}
+
+/* Modernized Story Rings */
+.story-add-circle {
+    background: #f8fafc !important;
+    border: 2px dashed #cbd5e1 !important;
+    color: #64748b !important;
+    box-shadow: none !important;
+}
+
+.story-add-circle:hover {
+    border-color: #6366f1 !important;
+    color: #6366f1 !important;
+    background: #e0e7ff !important;
+}
+
+.story-circle {
+    background: linear-gradient(135deg, #6366f1, #ec4899, #f59e0b) !important;
+    padding: 3px !important;
+}
+
+/* Soften borders inside posts */
+.post-header, .post-interactions, .profile-stats, .comment-section {
+    border-color: #f1f5f9 !important;
+}
+
+/* Interaction Buttons (Like, Comment, Share) */
+.interaction-btn {
+    border-radius: 12px !important;
+    padding: 8px 16px !important;
+    color: #64748b !important;
+}
+
+.interaction-btn:hover {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+.interaction-btn.liked {
+    color: #ec4899 !important; /* Pink like button */
+}
+
+.interaction-btn.liked:hover {
+    background: rgba(236, 72, 153, 0.1) !important;
+}
+
+/* Comment Inputs */
+.comment-input {
+    border-radius: 20px !important;
+    background: #f1f5f9 !important;
+    border: 2px solid transparent !important;
+}
+
+.comment-input:focus {
+    background: #ffffff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.comment-btn {
+    border-radius: 20px !important;
+    background: #0f172a !important;
+}
+
+.comment-btn:hover {
+    background: #1e293b !important;
+}
+
+/* Beautiful Admin/Faculty Badges */
+.announcement-badge {
+    box-shadow: 0 4px 10px rgba(0, 149, 246, 0.3) !important;
+}
+
+.badge-faculty {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important;
+}
+
+.badge-admin {
+    background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%) !important;
+    box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3) !important;
+}
+
+/* Search Bar Upgrade */
+.nav-search {
+    background: #f1f5f9 !important;
+    border: 1px solid transparent !important;
+}
+
+.nav-search:focus-within {
+    background: #ffffff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Fix Burger Visibility & Spacing */
+.nav-burger {
+    display: inline-flex !important; /* Ensure it shows up */
+    font-size: 20px;
+    padding: 8px;
+    margin-left: 0 !important; /* Reset old margins */
+    margin-right: 10px;
+    color: #334155;
+    background: transparent;
+    transition: all 0.2s;
+}
+
+.nav-burger:hover {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 50%;
+    color: #000;
+}
+
+/* Ensure Logo text doesn't squish */
+.navbar-brand {
+    white-space: nowrap;
+}
