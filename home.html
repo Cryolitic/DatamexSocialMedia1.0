@@ -131,7 +131,7 @@
                                 <i class="fas fa-pen"></i> Edit Profile
                             </button>
                         </div>
-                        <h4 class="profile-name clickable-profile" id="profileName" title="View Story or Profile">John Doe</h4>
+                        <h4 class="profile-name clickable-profile mt-2" id="profileName" title="View Story or Profile">John Doe</h4>
                         <p class="profile-username" id="profileUsername">@johndoe</p>
                         <div class="profile-stats">
                             <div class="stat-item">
@@ -168,7 +168,7 @@
                 
                 
                 <!-- Create Post Section -->
-                <div class="create-post-card feed-width">
+                <div class="create-post-card feed-width" id="createPostSection">
                     <div class="create-post-header">
                         <img src="assets/images/default-avatar.png" alt="User" class="create-post-avatar avatar-zoom" onclick="openMediaViewer(this.src)" onerror="this.onerror=null;this.src='assets/images/default-avatar.png'">
                         <input type="text" id="postContent" class="create-post-input" placeholder="What's on your mind?">
@@ -185,7 +185,7 @@
                     <div class="create-post-actions">
                         <label for="postMedia" class="action-btn">
                             <i class="fas fa-image"></i>
-                            <span>Media</span>
+                            <span>Add Media</span>
                             <input type="file" id="postMedia" accept="image/png,image/jpeg,image/jpg,video/mp4" multiple style="display:none;">
                         </label>
                         <div id="announcementToggle" style="display:none;">
@@ -205,6 +205,11 @@
                         </button>
                     </div>
                     <div class="media-preview" id="mediaPreview"></div>
+                    <div id="discardPostDraftWrap" class="text-end mt-2 d-none">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="discardPostDraftBtn">
+                            <i class="fas fa-eraser"></i> Discard Changes
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Timeline Posts -->
@@ -327,9 +332,16 @@
                 <div class="modal-header border-0 py-2">
                     <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body d-flex justify-content-center align-items-center p-2 p-md-3">
+                <div class="modal-body position-relative d-flex justify-content-center align-items-center p-2 p-md-3">
+                    <button type="button" class="btn btn-outline-light media-viewer-nav-btn media-viewer-prev d-none" id="mediaViewerPrevBtn" aria-label="Previous media">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                     <img id="mediaViewerImageEl" src="" alt="Media" class="img-fluid d-none" style="max-height:88vh;">
                     <video id="mediaViewerVideoEl" class="w-100 d-none" controls autoplay playsinline style="max-height:88vh;"></video>
+                    <button type="button" class="btn btn-outline-light media-viewer-nav-btn media-viewer-next d-none" id="mediaViewerNextBtn" aria-label="Next media">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <span id="mediaViewerCounter" class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 d-none"></span>
                 </div>
             </div>
         </div>
@@ -374,6 +386,56 @@
                     <button type="button" class="btn btn-outline-secondary" id="profileChoiceViewProfile">
                         <i class="fas fa-user"></i> View Profile
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Post Modal -->
+    <div class="modal fade" id="editPostModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-white text-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title text-dark"><i class="fas fa-pen text-primary"></i> Edit Post</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editPostContent" class="form-label fw-semibold text-body">Text</label>
+                        <textarea id="editPostContent" class="form-control" rows="4" placeholder="Edit your post text..."></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold text-body">Media</label>
+                        <div id="editPostMediaPreview" class="edit-post-media-preview"></div>
+                    </div>
+                    <input type="file" id="editPostMediaInput" accept="image/png,image/jpeg,image/jpg,video/mp4" multiple hidden>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEditPostBtn">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Media Manager Modal -->
+    <div class="modal fade" id="editPostMediaManagerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content bg-white text-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title text-dark"><i class="fas fa-images text-primary"></i> Edit Media</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editPostMediaManagerList" class="row g-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="editPostMediaManagerAddBtn">
+                        <i class="fas fa-plus"></i> Add Media
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
                 </div>
             </div>
         </div>
