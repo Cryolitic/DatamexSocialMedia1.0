@@ -15,6 +15,13 @@ let profileStatsRequestSeq = 0; // prevent stale async profile stats overwriting
 let currentUserRole = 'student';
 let hasShownNewUserGuidePopup = false;
 let isNewUserGuideDismissedForAccount = false;
+let mediaViewerState = { items: [], index: 0 };
+let editPostState = {
+    postId: null,
+    existingMedia: [],
+    newMedia: [],
+    nextNewId: 1
+};
 
 function dismissNewUserGuideForever() {
     hasShownNewUserGuidePopup = true;
@@ -55,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializePage();
     viewedProfile = { ...currentUser };
     updateProfileSidebar(viewedProfile);
+    updateStoriesVisibility();
     await loadMyProfileStats();
     loadPosts();
     loadNotifications();
@@ -179,6 +187,8 @@ function setupEventListeners() {
 
     // Create post button
     document.getElementById('createPostBtn').addEventListener('click', createPost);
+    document.getElementById('discardPostDraftBtn')?.addEventListener('click', discardCreatePostDraft);
+    document.getElementById('postContent')?.addEventListener('input', updateCreatePostDiscardVisibility);
     
     // View Announcements button (toggle announcements-only feed)
     const viewAnnBtn = document.getElementById('viewAnnouncementsBtn');
@@ -279,6 +289,17 @@ function setupEventListeners() {
         });
     }
 
+    // Edit post modals
+    document.getElementById('saveEditPostBtn')?.addEventListener('click', saveEditedPost);
+    document.getElementById('editPostMediaInput')?.addEventListener('change', handleEditPostMediaSelect);
+    document.getElementById('editPostMediaManagerAddBtn')?.addEventListener('click', () => {
+        document.getElementById('editPostMediaInput')?.click();
+    });
+    document.getElementById('editPostModal')?.addEventListener('hidden.bs.modal', resetEditPostState);
+    document.getElementById('editPostMediaManagerModal')?.addEventListener('shown.bs.modal', renderEditPostMediaManager);
+    document.getElementById('mediaViewerPrevBtn')?.addEventListener('click', showPrevMediaInViewer);
+    document.getElementById('mediaViewerNextBtn')?.addEventListener('click', showNextMediaInViewer);
+
     // Media viewer cleanup
     const mediaViewerModal = document.getElementById('mediaViewerModal');
     if (mediaViewerModal) {
@@ -294,8 +315,16 @@ function setupEventListeners() {
                 imageEl.removeAttribute('src');
                 imageEl.classList.add('d-none');
             }
+            mediaViewerState = { items: [], index: 0 };
+            updateMediaViewerControls();
         });
     }
+    document.addEventListener('keydown', (e) => {
+        const isViewerOpen = document.getElementById('mediaViewerModal')?.classList.contains('show');
+        if (!isViewerOpen) return;
+        if (e.key === 'ArrowLeft') showPrevMediaInViewer();
+        if (e.key === 'ArrowRight') showNextMediaInViewer();
+    });
     
     // MyDay / Stories
     document.getElementById('addStoryBtn')?.addEventListener('click', () => document.getElementById('storyMediaInput')?.click());
@@ -626,12 +655,25 @@ function updateViewHeader() {
     }
 }
 
+function updateStoriesVisibility() {
+    const storiesRow = document.getElementById('storiesRow');
+    const createPostSection = document.getElementById('createPostSection');
+    const showHomeOnly = currentView === 'home';
+    if (storiesRow) {
+        storiesRow.style.display = showHomeOnly ? '' : 'none';
+    }
+    if (createPostSection) {
+        createPostSection.style.display = showHomeOnly ? '' : 'none';
+    }
+}
+
 function navigateTo(page) {
     setActiveNav(page);
 
     if (page === 'home') {
         currentView = 'home';
         currentFilterUserId = null
+        updateStoriesVisibility();
         viewedProfile = {...currentUser};
         updateProfileSidebar(viewedProfile);
         updateViewHeader();
@@ -643,63 +685,96 @@ function navigateTo(page) {
     }
 
     if (page === 'profile') {
-        // Show View Story or View Profile choice for self
-        fetch(`api/get_profile.php?user_id=${currentUser.id}&viewer_id=${currentUser.id}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.profile) {
-                    showProfileChoice(data.profile);
-                } else {
-                    visitProfile(currentUser);
-                }
-            })
-            .catch(() => visitProfile(currentUser));
+        visitProfile(currentUser);
         return;
     }
 
 }
 
 function handleMediaPreview(e) {
-    const preview = document.getElementById('mediaPreview');
+    const incoming = Array.from(e.target.files || []);
+    if (!incoming.length) return;
 
-    selectedMediaFiles = Array.from(e.target.files || []);
-    preview.innerHTML = '';
-
-    if (selectedMediaFiles.length === 0) {
-        preview.style.display = 'none';
-        return;
-    }
-
-    // Validate all files
-    for (const file of selectedMediaFiles) {
+    for (const file of incoming) {
         if (!validateFile(file, { allowVideo: true, maxSizeMB: 30 })) {
-            selectedMediaFiles = [];
-            document.getElementById('postMedia').value = '';
-            preview.style.display = 'none';
-            preview.innerHTML = '';
+            e.target.value = '';
             return;
         }
     }
 
-    // Render thumbnails
-    preview.style.display = 'block';
-    preview.classList.add('media-preview-grid');
-    selectedMediaFiles.forEach((file) => {
-        const url = URL.createObjectURL(file);
-        if (file.type.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = url;
-            video.muted = true;
-            video.controls = true;
-            video.playsInline = true;
-            preview.appendChild(video);
-        } else {
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = 'Preview';
-            preview.appendChild(img);
+    incoming.forEach((file) => {
+        const exists = selectedMediaFiles.some(
+            (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+        );
+        if (!exists) {
+            selectedMediaFiles.push(file);
         }
     });
+
+    e.target.value = '';
+    renderCreatePostMediaPreview();
+}
+
+function renderCreatePostMediaPreview() {
+    const preview = document.getElementById('mediaPreview');
+    if (!preview) return;
+
+    if (!selectedMediaFiles.length) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        updateCreatePostDiscardVisibility();
+        return;
+    }
+
+    preview.style.display = 'block';
+    preview.innerHTML = `
+        <div class="create-draft-media-grid">
+            ${selectedMediaFiles.map((file, index) => {
+                const url = URL.createObjectURL(file);
+                const isVideo = file.type.startsWith('video/');
+                return `
+                    <div class="create-draft-media-item">
+                        <button type="button" class="btn btn-sm btn-danger create-draft-remove-btn" onclick="removeSelectedCreateMedia(${index})" title="Remove media">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        ${isVideo
+                            ? `<video src="${url}" controls playsinline onloadeddata="URL.revokeObjectURL('${url}')"></video>`
+                            : `<img src="${url}" alt="Preview" onload="URL.revokeObjectURL('${url}')">`
+                        }
+                    </div>
+                `;
+            }).join('')}
+            <button type="button" class="btn btn-outline-primary create-draft-add-more" onclick="document.getElementById('postMedia')?.click()">
+                <i class="fas fa-plus"></i> Add Media
+            </button>
+        </div>
+    `;
+    updateCreatePostDiscardVisibility();
+}
+
+function removeSelectedCreateMedia(index) {
+    if (index < 0 || index >= selectedMediaFiles.length) return;
+    selectedMediaFiles.splice(index, 1);
+    renderCreatePostMediaPreview();
+}
+
+function discardCreatePostDraft() {
+    document.getElementById('postContent').value = '';
+    document.getElementById('postMedia').value = '';
+    selectedMediaFiles = [];
+    renderCreatePostMediaPreview();
+    updateCreatePostDiscardVisibility();
+}
+
+function hasCreatePostDraftChanges() {
+    const content = (document.getElementById('postContent')?.value || '').trim();
+    return content.length > 0 || selectedMediaFiles.length > 0;
+}
+
+function updateCreatePostDiscardVisibility() {
+    const wrap = document.getElementById('discardPostDraftWrap');
+    if (!wrap) return;
+    wrap.classList.toggle('d-none', !hasCreatePostDraftChanges());
 }
 
 function validateFile(file, options = {}) {
@@ -738,9 +813,7 @@ function validateFile(file, options = {}) {
 
 function createPost() {
     const content = document.getElementById('postContent').value.trim();
-    const mediaFiles = selectedMediaFiles.length
-        ? selectedMediaFiles
-        : Array.from(document.getElementById('postMedia').files || []);
+    const mediaFiles = selectedMediaFiles;
     const isAnnouncement = document.getElementById('isAnnouncement')?.checked || false;
     
     if (!content && mediaFiles.length === 0) {
@@ -803,9 +876,7 @@ function createPost() {
             });
             
             // Reset form
-            document.getElementById('postContent').value = '';
-            document.getElementById('postMedia').value = '';
-            document.getElementById('mediaPreview').style.display = 'none';
+            discardCreatePostDraft();
             document.getElementById('isAnnouncement').checked = false;
             const pr = document.getElementById('privacyRow');
             if (pr) pr.style.display = 'flex';
@@ -867,11 +938,7 @@ function createPost() {
         });
         
         // Reset form
-        document.getElementById('postContent').value = '';
-        document.getElementById('postMedia').value = '';
-        selectedMediaFiles = [];
-        document.getElementById('mediaPreview').style.display = 'none';
-        document.getElementById('mediaPreview').innerHTML = '';
+        discardCreatePostDraft();
         
         btn.innerHTML = originalHTML;
         btn.disabled = false;
@@ -1009,6 +1076,7 @@ function visitProfile(profile) {
     viewedProfile = profile;
     currentView = 'profile';
     currentFilterUserId = profile.id;
+    updateStoriesVisibility();
     updateViewHeader();
     updateProfileSidebar(profile);
     loadPosts(); // Reload posts with profile filter
@@ -1232,6 +1300,11 @@ function updateOnboardingState() {
     }
 }
 
+function isVideoMediaUrl(src) {
+    const s = String(src || '').toLowerCase();
+    return s.includes('/video/upload/') || s.endsWith('.mp4');
+}
+
 function renderPostMedia(post) {
     if (!post || !post.media) return '';
 
@@ -1245,46 +1318,58 @@ function renderPostMedia(post) {
     const shown = items.slice(0, maxShow);
     const remaining = items.length - shown.length;
 
-    const isVideoSrc = (src) => {
-        const s = String(src || '').toLowerCase();
-        return s.includes('/video/upload/') || s.endsWith('.mp4');
-    };
-    const openAttr = (src) => `onclick="openMediaViewer('${String(src).replace(/'/g, "\\'")}', ${isVideoSrc(src)})"`;
-    const renderItem = (src, thumbClass = 'post-media-thumb') => {
-        if (isVideoSrc(src)) {
+    const openPostAttr = (index) => `onclick="openPostMediaViewer(${post.id}, ${index})"`;
+    const renderItem = (src, index, thumbClass = 'post-media-thumb') => {
+        if (isVideoMediaUrl(src)) {
             return `<video src="${src}" class="${thumbClass}" controls playsinline></video>`;
         }
-        return `<img src="${src}" alt="Post media" class="${thumbClass}" ${openAttr(src)}>`;
+        return `<img src="${src}" alt="Post media" class="${thumbClass}" ${openPostAttr(index)}>`;
     };
 
     if (items.length === 1) {
         const src = items[0];
-        if (isVideoSrc(src)) {
+        if (isVideoMediaUrl(src)) {
             return `<video src="${src}" class="post-media" controls playsinline></video>`;
         }
-        return `<img src="${src}" alt="Post media" class="post-media" ${openAttr(src)}>`;
+        return `<img src="${src}" alt="Post media" class="post-media" ${openPostAttr(0)}>`;
     }
 
     return `
         <div class="post-media-grid count-${shown.length}">
             ${shown.map((src, idx) => `
                 <div class="post-media-cell ${idx === 0 ? 'first' : ''}">
-                    ${renderItem(src)}
-                    ${idx === shown.length - 1 && remaining > 0 ? `<div class="post-media-more" ${openAttr(src)}>+${remaining}</div>` : ''}
+                    ${renderItem(src, idx)}
+                    ${idx === shown.length - 1 && remaining > 0 ? `<div class="post-media-more" ${openPostAttr(idx)}>+${remaining}</div>` : ''}
                 </div>
             `).join('')}
         </div>
     `;
 }
 
-function openMediaViewer(src, isVideo = false) {
-    if (!src) return;
+function updateMediaViewerControls() {
+    const prevBtn = document.getElementById('mediaViewerPrevBtn');
+    const nextBtn = document.getElementById('mediaViewerNextBtn');
+    const counter = document.getElementById('mediaViewerCounter');
+    const total = mediaViewerState.items.length;
+    const hasMultiple = total > 1;
+
+    if (prevBtn) prevBtn.classList.toggle('d-none', !hasMultiple);
+    if (nextBtn) nextBtn.classList.toggle('d-none', !hasMultiple);
+    if (counter) {
+        counter.classList.toggle('d-none', total === 0);
+        if (total > 0) counter.textContent = `${mediaViewerState.index + 1} / ${total}`;
+    }
+}
+
+function renderMediaViewerAtCurrentIndex() {
     const modalEl = document.getElementById('mediaViewerModal');
     const imageEl = document.getElementById('mediaViewerImageEl');
     const videoEl = document.getElementById('mediaViewerVideoEl');
+    const src = mediaViewerState.items[mediaViewerState.index];
+    if (!src) return;
     if (!modalEl || !imageEl || !videoEl) return;
 
-    if (isVideo) {
+    if (isVideoMediaUrl(src)) {
         imageEl.classList.add('d-none');
         imageEl.removeAttribute('src');
         videoEl.classList.remove('d-none');
@@ -1297,8 +1382,57 @@ function openMediaViewer(src, isVideo = false) {
         imageEl.src = src;
     }
 
+    updateMediaViewerControls();
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
+}
+
+function openPostMediaViewer(postId, startIndex = 0) {
+    const post = posts.find(p => Number(p.id) === Number(postId));
+    if (!post || !post.media) return;
+    const items = (Array.isArray(post.media) ? post.media : [post.media])
+        .map((item) => (item && typeof item === 'object' ? item.url : item))
+        .filter(Boolean);
+    if (!items.length) return;
+    mediaViewerState.items = items;
+    mediaViewerState.index = Math.max(0, Math.min(Number(startIndex) || 0, items.length - 1));
+    renderMediaViewerAtCurrentIndex();
+}
+
+function showPrevMediaInViewer() {
+    const total = mediaViewerState.items.length;
+    if (total <= 1) return;
+    mediaViewerState.index = (mediaViewerState.index - 1 + total) % total;
+    renderMediaViewerAtCurrentIndex();
+}
+
+function showNextMediaInViewer() {
+    const total = mediaViewerState.items.length;
+    if (total <= 1) return;
+    mediaViewerState.index = (mediaViewerState.index + 1) % total;
+    renderMediaViewerAtCurrentIndex();
+}
+
+function openMediaViewer(src, isVideo = false) {
+    if (!src) return;
+    mediaViewerState.items = [src];
+    mediaViewerState.index = 0;
+    // Keep compatibility with explicit video flag from older callers.
+    if (isVideo && !isVideoMediaUrl(src)) {
+        const modalEl = document.getElementById('mediaViewerModal');
+        const imageEl = document.getElementById('mediaViewerImageEl');
+        const videoEl = document.getElementById('mediaViewerVideoEl');
+        if (!modalEl || !imageEl || !videoEl) return;
+        imageEl.classList.add('d-none');
+        imageEl.removeAttribute('src');
+        videoEl.classList.remove('d-none');
+        videoEl.src = src;
+        updateMediaViewerControls();
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+        return;
+    }
+    renderMediaViewerAtCurrentIndex();
 }
 
 function openCoverViewer() {
@@ -1610,50 +1744,266 @@ function showPostMenu(postId) {
 function editPost(postId) {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    
-    Swal.fire({
-        title: 'Edit Post',
-        input: 'textarea',
-        inputValue: post.content,
-        inputAttributes: {
-            placeholder: 'Enter your post content'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Save',
-        confirmButtonColor: '#6366f1',
-        preConfirm: (content) => {
-            if (!content.trim()) {
-                Swal.showValidationMessage('Content cannot be empty');
+
+    resetEditPostState();
+    editPostState.postId = postId;
+    editPostState.existingMedia = normalizePostMedia(post).map((url, idx) => ({
+        id: `existing-${idx}`,
+        url,
+        removed: false
+    }));
+
+    const contentInput = document.getElementById('editPostContent');
+    if (contentInput) contentInput.value = post.content || '';
+    renderEditPostMediaPreview();
+
+    const modalEl = document.getElementById('editPostModal');
+    if (!modalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+function normalizePostMedia(post) {
+    if (!post || !post.media) return [];
+    return (Array.isArray(post.media) ? post.media : [post.media])
+        .map((item) => (item && typeof item === 'object' ? item.url : item))
+        .filter(Boolean);
+}
+
+function resetEditPostState() {
+    editPostState.newMedia.forEach(item => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    editPostState = {
+        postId: null,
+        existingMedia: [],
+        newMedia: [],
+        nextNewId: 1
+    };
+    const fileInput = document.getElementById('editPostMediaInput');
+    if (fileInput) fileInput.value = '';
+    const preview = document.getElementById('editPostMediaPreview');
+    if (preview) preview.innerHTML = '';
+    const manager = document.getElementById('editPostMediaManagerList');
+    if (manager) manager.innerHTML = '';
+}
+
+function getActiveEditMediaItems() {
+    const existing = editPostState.existingMedia
+        .filter(item => !item.removed)
+        .map(item => ({ id: item.id, url: item.url, isNew: false }));
+    const newer = editPostState.newMedia
+        .map(item => ({ id: item.id, url: item.previewUrl, isNew: true }));
+    return [...existing, ...newer];
+}
+
+function renderEditPostMediaPreview() {
+    const wrap = document.getElementById('editPostMediaPreview');
+    if (!wrap) return;
+
+    const items = getActiveEditMediaItems();
+    if (items.length === 0) {
+        wrap.innerHTML = `
+            <div class="text-center py-3">
+                <p class="text-muted mb-2">No media selected</p>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openEditPostMediaPicker()">
+                    <i class="fas fa-plus"></i> Add Media
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const first = items[0];
+    const overlayBtn = items.length === 1
+        ? `<button type="button" class="btn btn-sm btn-danger edit-media-overlay-btn" title="Remove media" onclick="removeEditMediaItem('${first.id}')"><i class="fas fa-trash"></i></button>`
+        : `<button type="button" class="btn btn-sm btn-primary edit-media-overlay-btn" title="Edit media list" onclick="openEditPostMediaManager()"><i class="fas fa-pen"></i></button>`;
+
+    const mediaHtml = isVideoMediaUrl(first.url)
+        ? `<video src="${first.url}" controls playsinline></video>`
+        : `<img src="${first.url}" alt="Post media preview">`;
+
+    const countBadge = items.length > 1
+        ? `<span class="badge bg-dark position-absolute bottom-0 end-0 m-2">${items.length} files</span>`
+        : '';
+
+    wrap.innerHTML = `
+        <div class="edit-media-single-wrap mb-3">
+            ${overlayBtn}
+            ${mediaHtml}
+            ${countBadge}
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openEditPostMediaPicker()">
+                <i class="fas fa-plus"></i> Add Media
+            </button>
+            ${items.length > 1 ? `
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openEditPostMediaManager()">
+                    <i class="fas fa-images"></i> Manage All Media
+                </button>
+            ` : ''}
+        </div>
+    `;
+}
+
+function openEditPostMediaPicker() {
+    document.getElementById('editPostMediaInput')?.click();
+}
+
+function handleEditPostMediaSelect(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    files.forEach(file => {
+        if (!validateFile(file, { allowVideo: true, maxSizeMB: 30 })) return;
+        const previewUrl = URL.createObjectURL(file);
+        editPostState.newMedia.push({
+            id: `new-${editPostState.nextNewId++}`,
+            file,
+            previewUrl
+        });
+    });
+
+    e.target.value = '';
+    renderEditPostMediaPreview();
+    renderEditPostMediaManager();
+}
+
+function removeEditMediaItem(itemId) {
+    if (!itemId) return;
+    if (itemId.startsWith('existing-')) {
+        const item = editPostState.existingMedia.find(m => m.id === itemId);
+        if (item) item.removed = true;
+    } else {
+        const idx = editPostState.newMedia.findIndex(m => m.id === itemId);
+        if (idx >= 0) {
+            if (editPostState.newMedia[idx].previewUrl) {
+                URL.revokeObjectURL(editPostState.newMedia[idx].previewUrl);
             }
-            return content;
+            editPostState.newMedia.splice(idx, 1);
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('api/edit_post.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    post_id: postId,
-                    content: result.value,
-                    user_id: currentUser.id
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    post.content = result.value;
-                    renderPosts();
-                    Swal.fire('Updated!', 'Your post has been updated.', 'success');
-                }
-            })
-            .catch(error => {
-                // Demo mode
-                post.content = result.value;
-                renderPosts();
-                Swal.fire('Updated!', 'Your post has been updated.', 'success');
-            });
+    }
+    renderEditPostMediaPreview();
+    renderEditPostMediaManager();
+}
+
+function openEditPostMediaManager() {
+    renderEditPostMediaManager();
+    const modalEl = document.getElementById('editPostMediaManagerModal');
+    if (!modalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+function renderEditPostMediaManager() {
+    const list = document.getElementById('editPostMediaManagerList');
+    if (!list) return;
+
+    const items = getActiveEditMediaItems();
+    if (!items.length) {
+        list.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <p class="text-muted mb-2">No media to manage</p>
+                <button type="button" class="btn btn-outline-primary" onclick="openEditPostMediaPicker()">
+                    <i class="fas fa-plus"></i> Add Media
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const cards = items.map(item => {
+        const media = isVideoMediaUrl(item.url)
+            ? `<video src="${item.url}" controls playsinline></video>`
+            : `<img src="${item.url}" alt="Post media">`;
+        return `
+            <div class="col-12">
+                <div class="card edit-media-manager-item">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeEditMediaItem('${item.id}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        ${media}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const addCard = `
+        <div class="col-12">
+            <button type="button" class="btn btn-outline-primary w-100 py-3" onclick="openEditPostMediaPicker()">
+                <i class="fas fa-plus"></i> Add More Media
+            </button>
+        </div>
+    `;
+
+    list.innerHTML = cards + addCard;
+}
+
+function saveEditedPost() {
+    if (!editPostState.postId) return;
+
+    const contentInput = document.getElementById('editPostContent');
+    const saveBtn = document.getElementById('saveEditPostBtn');
+    const content = contentInput ? contentInput.value.trim() : '';
+    const activeMedia = getActiveEditMediaItems();
+    if (!content && activeMedia.length === 0) {
+        Swal.fire('Validation', 'Post must have text or media.', 'warning');
+        return;
+    }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+    }
+
+    const removedUrls = editPostState.existingMedia.filter(item => item.removed).map(item => item.url);
+    const formData = new FormData();
+    formData.append('post_id', String(editPostState.postId));
+    formData.append('user_id', String(currentUser.id));
+    formData.append('content', content);
+    formData.append('removed_media_urls', JSON.stringify(removedUrls));
+    editPostState.newMedia.forEach(item => formData.append('media[]', item.file));
+
+    fetch('api/edit_post.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to update post');
+        }
+
+        const localPost = posts.find(p => p.id === editPostState.postId);
+        if (localPost) {
+            localPost.content = content;
+            if (data.post && Array.isArray(data.post.media)) {
+                localPost.media = data.post.media;
+                localPost.media_type = data.post.media_type || (data.post.media.length ? 'image' : 'text');
+            } else {
+                localPost.media = activeMedia.map(item => item.url);
+                localPost.media_type = localPost.media.length ? 'image' : 'text';
+            }
+        }
+
+        renderPosts();
+        const mediaManagerModalEl = document.getElementById('editPostMediaManagerModal');
+        const editPostModalEl = document.getElementById('editPostModal');
+        if (mediaManagerModalEl) bootstrap.Modal.getOrCreateInstance(mediaManagerModalEl).hide();
+        if (editPostModalEl) bootstrap.Modal.getOrCreateInstance(editPostModalEl).hide();
+        Swal.fire('Updated!', 'Your post has been updated.', 'success');
+    })
+    .catch((error) => {
+        Swal.fire('Error', error.message || 'Failed to update post', 'error');
+    })
+    .finally(() => {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
         }
     });
 }
@@ -1802,6 +2152,7 @@ function openNotification(idx) {
         focusPostId = notif.post_id;
         currentView = 'home';
         currentFilterUserId = null;
+        updateStoriesVisibility();
         setActiveNav('home');
         if (posts && posts.length) {
             renderPosts();
